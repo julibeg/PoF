@@ -19,13 +19,26 @@ public:
 	Matrix<long> m_cd_table;
 	unsigned int m_max_d;
 
-	// delegating constructor (new in C++11)
+	// default constructor
+	PoF_calculator(){
+	}
+
+	// constructor for compressed networks --> delegating to constructor for
+	// uncomprressed (constructor delegation is new in C++11)
 	PoF_calculator(const string &mcs_input_fname, const string &comp_rxn_fname,
-		size_t r, char rxn_delimiter='%')
+		size_t r=0)
 		: PoF_calculator(mcs_input_fname){    // delegate to other constructor
-		m_r = r;
-		read_comp_rxn_file(comp_rxn_fname, rxn_delimiter);
+		read_comp_rxn_file(comp_rxn_fname);
 		m_compressed = true;
+		// if # of uncompr. rxns has not been provided, take sum of compr. rxns
+		if (r == 0) {
+			m_r = 0;
+			for (auto rxn_count : m_compr_rxn_counts) {
+				m_r += rxn_count;
+			}
+		} else {
+			m_r = r;
+		}
 		// find the number of uncompressed mcs1 rxns
 		for (size_t rxn_id : m_mcs1_rxns) {
 			m_num_mcs1_uncompressed += m_compr_rxn_counts[rxn_id];
@@ -39,11 +52,11 @@ public:
 			}
 		}
 		m_compr_rxn_counts = temp;
-
 	}
 
+	// constructor for uncompressed case
 	PoF_calculator(const string &mcs_input_fname){
-		vector<Cutset> MCSs = read_input_file(mcs_input_fname);
+		vector<Cutset> MCSs = read_MCS_file(mcs_input_fname);
 		m_r = MCSs[0].m_len;
 		m_nbytes = MCSs[0].m_nbytes;
 		m_nMCS = MCSs.size();
@@ -60,7 +73,7 @@ public:
 		m_MCSs = MCSs;
 	}
 
-	void read_comp_rxn_file(const string &fname, char rxn_delimiter){
+	void read_comp_rxn_file(const string &fname){
 		string line;
 		ifstream file(fname);
 		if (file.is_open()) {
@@ -72,23 +85,14 @@ public:
 			exit(EXIT_FAILURE);
 		}
 		// split line at whitespace
-		vector<string> comp_rxns_names;
 		string comp_rxn;
 		istringstream iss(line);
 		while (getline(iss, comp_rxn, ' ')) {
-			comp_rxns_names.push_back(comp_rxn);
-		}
-		// count compressed rxns (occurrences of delimiter + 1)
-		m_compr_rxn_counts.clear();
-		unsigned int rxn_count;
-		for (string comp_rxn : comp_rxns_names) {
-			rxn_count =
-				count(comp_rxn.begin(), comp_rxn.end(), rxn_delimiter) + 1;
-			m_compr_rxn_counts.push_back(rxn_count);
+			m_compr_rxn_counts.push_back(stoi(comp_rxn));
 		}
 	}
 
-	vector<Cutset> read_input_file(const string &fname){
+	vector<Cutset> read_MCS_file(const string &fname){
 		string line;
 		vector<Cutset> MCSs;
 		ifstream file(fname);
@@ -174,7 +178,7 @@ public:
 
 	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1){
 		// check if max_d is greater than the number of reactions
-		if (max_d > m_r) {
+		if ((max_d > m_r) || (max_d == 0)) {
 			max_d = m_r;
 		}
 		m_max_d = max_d;
@@ -184,7 +188,7 @@ public:
 			add_MCS1_to_table();
 		}
 
-		cout << "Staring recursion..." << endl;
+		cout << "Starting recursion..." << endl;
 		// check if there are MCS with d > max_d
 		if (m_MCSs.back().CARDINALITY() > max_d) {
 			// get the last element with d <= max_d
@@ -204,12 +208,6 @@ public:
 		}
 	}
 
-	static void combine_Counters(Counter &c1, const Counter &c2){
-		for (auto const &elem : c2) {
-			c1[elem.first] += elem.second;
-		}
-	}
-
 	void GET_CARDINALITIES(size_t index, const Cutset &Cs, unsigned int Cd,
 	                       unsigned int max_d, unsigned int depth,
 	                       Cutset stored){
@@ -218,6 +216,7 @@ public:
 		size_t plus1_rxns = 0;
 		Cutset testCs(Cs.m_len);
 		unsigned int testCd;
+		cout << "depth: " << depth << endl;
 		// check for plus 1 rxns first
 		for (size_t i = 0; i < index; i++) {
 			if (!(m_MCSs[i] && stored)) {
@@ -232,10 +231,14 @@ public:
 			}
 		}
 		// get number of plus 1 rxns
-		for (size_t rxn_id : stored.get_active_rxns()) {
-			plus1_rxns += m_compr_rxn_counts[rxn_id];
+		if (m_compressed) {
+			for (size_t rxn_id : stored.get_active_rxns()) {
+				plus1_rxns += m_compr_rxn_counts[rxn_id];
+			}
+			plus1_rxns += m_num_mcs1_uncompressed;          // add MCS1 rxns
+		} else {
+			plus1_rxns += m_num_mcs1;
 		}
-		plus1_rxns += m_num_mcs1_uncompressed;          // add MCS1 rxns
 		// perform additional recursions if required
 		if (Cd < max_d) {
 			for (size_t j : still_to_check) {
@@ -252,20 +255,28 @@ public:
 			}
 		}
 		// get active rxns of current cutset
-		vector<size_t> Cs_rxns = Cs.get_active_rxns();
-		vector<unsigned int> NCRs;
-		NCRs.reserve(Cs_rxns.size());
-		for (size_t rxn_id : Cs.get_active_rxns()) {
-			NCRs.push_back(m_compr_rxn_counts[rxn_id]);
-		}
-		map<size_t, int> table = resolve_compressed_cutset(NCRs, max_d, depth);
-		// single threaded now
+		if (m_compressed) {
+			vector<size_t> Cs_rxns = Cs.get_active_rxns();
+			vector<unsigned int> NCRs;
+			NCRs.reserve(Cs_rxns.size());
+			for (size_t rxn_id : Cs.get_active_rxns()) {
+				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
+			}
+			map<size_t, int> table = resolve_compressed_cutset(NCRs, max_d, depth);
+			// single threaded now
 	#pragma omp critical
-		{
-			for (auto elem : table) {
-				size_t Mj = elem.first;
-				int count = elem.second;
-				m_cd_table[Mj - 1][plus1_rxns] += count;
+			{
+				for (auto elem : table) {
+					size_t Mj = elem.first;
+					int count = elem.second;
+					m_cd_table[Mj - 1][plus1_rxns] += count;
+				}
+			}
+		} else {
+			int sign = pow(-1, depth - 1);
+	#pragma omp critical
+			{
+				m_cd_table[Cd - 1][plus1_rxns] += sign;
 			}
 		}
 	}
@@ -298,27 +309,3 @@ public:
 	}
 
 };
-
-int main(){
-	// PoF_calculator calc("../example_files/d4.mcs.binary");
-	// PoF_calculator calc(
-	//      "../example_files/d4.mcs.binary.compressed",
-	//      "../example_files/toy.rfile_comp",7);
-
-	PoF_calculator calc(
-		"../example_files/ecoli5010.mcs.binary.compressed",
-		"../example_files/ecoli_5010.rfile_comp", 82);
-	// for (auto v : calc.m_compr_rxn_counts) {
-	//      cout << v << " ";
-	// }
-	// cout << endl;
-
-	unsigned int max_d = 50, threads = 10;
-	calc.get_cardinalities(max_d, threads);
-	// printf("m_r: %d, m_nbyes: %d, m_max_d: %d\n", calc.m_r, calc.m_nbytes, calc.m_max_d);
-	// calc.print_cd_table_2d_vec();
-	for (size_t i = 1; i <= calc.m_max_d; i++) {
-	     printf("d=%li\t%.18f\n", i, calc.score_cd_table(i));
-	}
-	return 0;
-}

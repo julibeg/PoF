@@ -64,7 +64,7 @@ public:
 	Cutset(size_t);    // initialize empty bitarr
 	Cutset(const string &); // initialize from string
 
-	void print(bool=true) const;
+	void print(bool) const;
 	unsigned int CARDINALITY() const;
 	Cutset operator | (const Cutset &) const;
 	bool operator && (const Cutset &) const;
@@ -119,7 +119,7 @@ void Cutset::print_byte(unsigned char x){
 }
 
 
-void Cutset::print(bool new_line) const {
+void Cutset::print(bool new_line=true) const {
 	for (size_t i = 0; i < m_nbytes; i++) {
 		print_byte(m_bitarr[i]);
 	}

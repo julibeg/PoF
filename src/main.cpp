@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
     for (size_t i = 1; i <= calc.m_max_d; i++) {
          printf("d=%li\t%.18f\n", i, calc.score_cd_table(i));
     }
-    calc.print_cd_table_2d_vec();
-    cout << calc.m_r << endl;
+    // calc.print_cd_table_2d_vec();
+    // cout << calc.m_r << endl;
 	return 0;
 }

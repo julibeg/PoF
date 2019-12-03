@@ -216,7 +216,6 @@ public:
 		size_t plus1_rxns = 0;
 		Cutset testCs(Cs.m_len);
 		unsigned int testCd;
-		cout << "depth: " << depth << endl;
 		// check for plus 1 rxns first
 		for (size_t i = 0; i < index; i++) {
 			if (!(m_MCSs[i] && stored)) {
@@ -237,7 +236,7 @@ public:
 			}
 			plus1_rxns += m_num_mcs1_uncompressed;          // add MCS1 rxns
 		} else {
-			plus1_rxns += m_num_mcs1;
+			plus1_rxns += stored.CARDINALITY() + m_num_mcs1;
 		}
 		// perform additional recursions if required
 		if (Cd < max_d) {

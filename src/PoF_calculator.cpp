@@ -1,6 +1,8 @@
 #include "VariadicTable.h"
 #include "cutset_compressed.cpp"
 #include "types.hpp"
+#include "progressbar.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -13,7 +15,7 @@ public:
 	vector<unsigned int> m_compr_rxn_counts;
 	vector<size_t> m_mcs1_rxns;
 	size_t m_r, m_nbytes, m_nMCS, m_r_reduced, m_nbytes_reduced, m_nMCS_reduced,
-	       m_last_d1, m_num_mcs1 = 0, m_num_mcs1_uncompressed = 0;
+	       m_num_mcs1 = 0, m_num_mcs1_uncompressed = 0;
 	bool m_MCS_d1_present = false;
 	vector<Cutset> m_MCSs;
 	Matrix<long> m_cd_table;
@@ -60,15 +62,15 @@ public:
 		m_r = MCSs[0].m_len;
 		m_nbytes = MCSs[0].m_nbytes;
 		m_nMCS = MCSs.size();
-		// only reduce matrix if MCS with d=1 and MCS with d>1 are present
-		if ((MCSs[0].CARDINALITY() == 1) && MCSs.back().CARDINALITY() > 1) {
+		// set 'reduced' variables (are overwritten in reduce_MCS_arr() later)
+		m_r_reduced = m_r;
+		m_nbytes_reduced = m_nbytes;
+		m_nMCS_reduced = m_nMCS;
+		// only reduce matrix if MCS with d=1 are present
+		if ((MCSs[0].CARDINALITY() == 1)) {
 			m_MCS_d1_present = true;
-			cout << "Reducing MCS matrix..." << endl;
+			cout << "Reducing MCS matrix...\n" << endl;
 			MCSs = reduce_MCS_arr(MCSs);
-		} else { // no MCS with d=1 or d>1 present --> no reduction
-			m_r_reduced = m_r;
-			m_nbytes_reduced = m_nbytes;
-			m_nMCS_reduced = m_nMCS;
 		}
 		m_MCSs = MCSs;
 	}
@@ -77,7 +79,7 @@ public:
 		string line;
 		ifstream file(fname);
 		if (file.is_open()) {
-			cout << "Reading comp. rxns file..." << endl;
+			cout << "Reading comp. rxns file...\n" << endl;
 			getline(file, line);
 			file.close();
 		} else {
@@ -97,7 +99,7 @@ public:
 		vector<Cutset> MCSs;
 		ifstream file(fname);
 		if (file.is_open()) {
-			cout << "Reading MCS file..." << endl;
+			cout << "Reading MCS file...\n" << endl;
 			while (getline(file, line)) {
 				Cutset cs(line);
 				MCSs.push_back(cs);
@@ -112,29 +114,42 @@ public:
 
 	vector<Cutset> reduce_MCS_arr(const vector<Cutset> &MCSs){
 		// find number of MCS(d=1) reactions and the corresponding reactions
-		for (size_t i = 0; i < MCSs.size(); i++) {
-			if (MCSs[i].CARDINALITY() > 1) {
-				m_last_d1 = i - 1;
-				m_num_mcs1 = i;
-				break;
+		if (MCSs.back().CARDINALITY() == 1) {
+			// matrix only has MCS with d=1 and is reduced to nothing
+			m_num_mcs1 = MCSs.size();
+			for (Cutset cs : MCSs) {
+				m_mcs1_rxns.push_back(cs.get_first_active_rxn());
 			}
-			m_mcs1_rxns.push_back(MCSs[i].get_first_active_rxn());
+			m_r_reduced = 0;
+			m_nbytes_reduced = 0;
+			m_nMCS_reduced = 0;
+			return vector<Cutset>();
+
+		} else {
+			// matrix has MCS with d=1 and d>1 --> remove all MCS with d=1 and
+			// the corresponding reactions
+			for (size_t i = 0; i < MCSs.size(); i++) {
+				if (MCSs[i].CARDINALITY() > 1) {
+					m_num_mcs1 = i;
+					break;
+				}
+				m_mcs1_rxns.push_back(MCSs[i].get_first_active_rxn());
+			}
+			m_r_reduced = m_r - m_num_mcs1;
+			m_nbytes_reduced = int_div_ceil(m_r_reduced, (size_t)CHAR_BIT);
+			m_nMCS_reduced = m_nMCS - m_num_mcs1;
+			// initialize return vector
+			vector<Cutset> reduced_arr;
+			reduced_arr.reserve(m_nMCS_reduced);
+			for (size_t i = m_num_mcs1; i < m_nMCS; i++) {
+				Cutset reduced_cs = MCSs[i].remove_rxns(m_mcs1_rxns);
+				reduced_arr.push_back(reduced_cs);
+			}
+			return reduced_arr;
 		}
-		m_r_reduced = m_r - (m_last_d1 + 1);
-		m_nbytes_reduced = int_div_ceil(m_r_reduced, (size_t)CHAR_BIT);
-		m_nMCS_reduced = m_nMCS - (m_last_d1 + 1);
-		// initialize return vector
-		vector<Cutset> reduced_arr;
-		reduced_arr.reserve(m_nMCS_reduced);
-		for (size_t i = m_last_d1 + 1; i < m_nMCS; i++) {
-			Cutset reduced_cs = MCSs[i].remove_rxns(m_mcs1_rxns);
-			reduced_arr.push_back(reduced_cs);
-		}
-		return reduced_arr;
 	}
 
 	void add_MCS1_to_table(){
-		cout << "adding MCS(d=1) to table..." << endl;
 		unsigned int num_mcs1 =
 			(m_compressed) ? m_num_mcs1_uncompressed : m_num_mcs1;
 		size_t Mj = 1; // cardinality of MCS1 = 1
@@ -161,12 +176,6 @@ public:
 
 	template <typename T>
 
-	void fill_2d_vec(vector<vector<T> > &vec, T new_value=0) const {
-		for (auto &row : vec) {
-			fill(row.begin(), row.end(), new_value);
-		}
-	}
-
 	void add_to_cd_table(const Counter &temp_table){
 		for (auto elem : temp_table) {
 			auto Mj = get<0>(elem.first);
@@ -184,11 +193,18 @@ public:
 		m_max_d = max_d;
 		m_cd_table = Matrix<long>(max_d, vector<long>(m_r, 0));
 		size_t last_MCS_to_consider = m_MCSs.size();
-		if (m_MCS_d1_present) {
+		if (m_MCS_d1_present) {                 // add MCS1 to table
+			cout << "adding MCS(d=1) to table...\n" << endl;
 			add_MCS1_to_table();
+			if (m_MCSs.size() == 0) {
+				// MCS matrix was reduced to nothing --> only MCS with d=1 in
+				// original matrix
+				cout << "no MCS with d>1 present --> no recursion required\n"
+				     << endl;
+				return;
+			}
 		}
-
-		cout << "Starting recursion..." << endl;
+		cout << "Starting recursion...\n" << endl;
 		// check if there are MCS with d > max_d
 		if (m_MCSs.back().CARDINALITY() > max_d) {
 			// get the last element with d <= max_d
@@ -199,13 +215,21 @@ public:
 				}
 			}
 		}
+		//setup progress bar
+		progressbar prog_bar(last_MCS_to_consider);
 		// initialize openMP for loop
 	#pragma omp parallel for num_threads(num_threads)
 		for (size_t i = 0; i < last_MCS_to_consider; i++) {
 			unsigned int mcs_card = m_MCSs[i].CARDINALITY();
 			GET_CARDINALITIES(i, m_MCSs[i], mcs_card, max_d, 1,
 			                  Cutset(m_r_reduced));
+			#pragma omp critical
+			{
+				prog_bar.update();
+			}
 		}
+		// add new lines after progress bar
+		cout << "\n\n" << endl;
 	}
 
 	void GET_CARDINALITIES(size_t index, const Cutset &Cs, unsigned int Cd,

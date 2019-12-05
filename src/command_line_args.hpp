@@ -1,7 +1,7 @@
 #ifndef COMMAND_LINE_ARGS_HPP
 #define COMMAND_LINE_ARGS_HPP
 
-#include "cxxopts.hpp"
+#include "../include/cxxopts.hpp"
 #include <iostream>
 using namespace std;
 

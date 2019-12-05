@@ -2,9 +2,9 @@
 #define POF_CALCULATOR_HPP
 
 #include "cutset.hpp"
-#include "progressbar.hpp"
 #include "table.hpp"
 #include "types.hpp"
+#include "../include/progressbar.hpp"
 
 #include <fstream>
 #include <iostream>

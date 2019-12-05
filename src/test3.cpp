@@ -1,7 +1,8 @@
+#include <boost/math/special_functions/binomial.hpp>
+#include <boost/math/distributions/poisson.hpp>
 #include <iostream>
 using namespace std;
 
 int main() {
-    size_t a = 10;
-    cout << (long) a << endl;
+
 }

@@ -1,10 +1,7 @@
-#include "PoF_calculator.cpp"
 #include <iostream>
-#include <vector>
-#include <boost/math/distributions/poisson.hpp>
 using namespace std;
 
 int main() {
-    vector<int> bla
-    cout << x << endl;
+    size_t a = 10;
+    cout << (long) a << endl;
 }

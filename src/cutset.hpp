@@ -1,4 +1,7 @@
-#include "combinatorics.cpp"
+#ifndef CUTSET_HPP
+#define CUTSET_HPP
+
+#include "combinatorics.hpp"
 #include <algorithm>
 #include <iostream>
 #include <limits.h>
@@ -21,7 +24,7 @@ template <typename T> T int_div_ceil(T a, T b){
 }
 
 
-template <typename T> bool in_vec(vector<T> vec, T x){
+template <typename T> bool in_vec(const vector<T> &vec, const T &x){
 	if (find(vec.begin(), vec.end(), x) != vec.end()) {
 		return true;
 	} else {
@@ -50,7 +53,7 @@ vector<unsigned int> generate_lookup_table(size_t nbits){
 vector<unsigned int> lookup_table = generate_lookup_table(CHAR_BIT);
 
 // use lookup table
-inline unsigned int count_byte(unsigned char byte){
+inline unsigned int count_byte(const unsigned char &byte){
 	return lookup_table[byte];
 }
 
@@ -61,7 +64,7 @@ public:
 	size_t m_nbytes;
 	vector<unsigned char> m_bitarr;
 
-	Cutset(size_t);    // initialize empty bitarr
+	Cutset(size_t);    		// initialize empty bitarr with number of bytes
 	Cutset(const string &); // initialize from string
 
 	void print(bool) const;
@@ -286,3 +289,5 @@ map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
 	}
 	return table;
 }
+
+#endif

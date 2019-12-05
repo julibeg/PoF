@@ -1,5 +1,5 @@
-#ifndef TABLE_H
-#define TABLE_H
+#ifndef TABLE_HPP
+#define TABLE_HPP
 
 #include <iostream>
 #include <vector>
@@ -14,7 +14,7 @@ public:
 
 	void print_header(){
         unsigned int line_length = 0;
-        for (auto fw: field_widths) {
+        for (auto const &fw: field_widths) {
             line_length += fw + 1;
         }
 		for (size_t i = 0; i < header.size(); i++) {

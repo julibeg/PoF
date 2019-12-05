@@ -46,10 +46,10 @@ class progressbar {
       ~progressbar()                             = default;
 
       // delete everything else
-      // progressbar           (progressbar const&) = delete;
-      // progressbar& operator=(progressbar const&) = delete;
-      // progressbar           (progressbar&&)      = delete;
-      // progressbar& operator=(progressbar&&);
+      progressbar           (progressbar const&) = delete;
+      progressbar& operator=(progressbar const&) = delete;
+      progressbar           (progressbar&&)      = delete;
+      progressbar& operator=(progressbar&&)      = delete;
 
       // default constructor, must call set_niter later
       progressbar();

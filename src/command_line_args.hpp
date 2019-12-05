@@ -1,3 +1,6 @@
+#ifndef COMMAND_LINE_ARGS_HPP
+#define COMMAND_LINE_ARGS_HPP
+
 #include "cxxopts.hpp"
 #include <iostream>
 using namespace std;
@@ -16,9 +19,10 @@ parsed_options parse_cmd_line(int argc, char* argv[]){
     parsed_options parsed_options;
 
     cxxopts::Options options("PoF_calculator",
-        "Calculate failure probability (PoF) of metabolic networks given low- "
-        "cardinality minimal cut sets (MCS). Capable of using MCS obtained from "
-        "a compressed network to yield the PoF of the original uncompressed one.\n");
+        "Calculate the probability of failure (PoF) for a metabolic network "
+         "given low-cardinality minimal cut sets (MCS). Capable of using MCS "
+         "obtained from a compressed network to yield the PoF of the original "
+         "uncompressed one.\n");
 
     options.custom_help("-m MCS_file [OPTIONS...]");
 	options.add_options()
@@ -40,7 +44,7 @@ parsed_options parse_cmd_line(int argc, char* argv[]){
         ("l,lambda", "lambda value used in poisson distribution modeling "
             "mutation frequency. [default=0.5]",
             cxxopts::value<double>(), " ")
-        ("h,help", "Print this message");
+        ("h,help", "print this message");
 
 	auto result = options.parse(argc, argv);
 
@@ -74,3 +78,5 @@ parsed_options parse_cmd_line(int argc, char* argv[]){
 
     return parsed_options;
 }
+
+#endif

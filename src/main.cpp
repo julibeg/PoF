@@ -1,5 +1,5 @@
-#include "PoF_calculator.cpp"
-#include "command_line_args.cpp"
+#include "PoF_calculator.hpp"
+#include "command_line_args.hpp"
 
 using namespace std;
 

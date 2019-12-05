@@ -1,7 +1,9 @@
+#ifndef TABLE_H
+#define TABLE_H
+
 #include <iostream>
 #include <vector>
 #include <string>
-#include <tuple>
 using namespace std;
 
 class Table {
@@ -52,3 +54,5 @@ private:
 	}
 
 };
+
+#endif

@@ -223,14 +223,19 @@ public:
 		}
 		// setup progress bar
 		progressbar prog_bar(last_MCS_to_consider);
-// initialize openMP for loop
-#pragma omp parallel for num_threads(num_threads)
+		// initialize openMP for loop
+		#pragma omp parallel for num_threads(num_threads)
 		for (size_t i = 0; i < last_MCS_to_consider; i++) {
-			unsigned int mcs_card = m_MCSs[i].CARDINALITY();
-			GET_CARDINALITIES(i, m_MCSs[i], mcs_card, max_d, 1,
-			                  Cutset(m_r_reduced));
-#pragma omp critical
-			{ prog_bar.update(); }
+			#pragma omp task
+			{
+				unsigned int mcs_card = m_MCSs[i].CARDINALITY();
+				GET_CARDINALITIES(i, m_MCSs[i], mcs_card, max_d, 1,
+				                  Cutset(m_r_reduced));
+				#pragma omp critical
+				{
+					prog_bar.update();
+				}
+			}
 		}
 		// add new lines after progress bar
 		cout << "\n\n" << endl;

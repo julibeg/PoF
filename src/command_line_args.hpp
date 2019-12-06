@@ -61,8 +61,8 @@ void print_help() {
         "obtained from a compressed network to yield the PoF of the original "
         "uncompressed one."};
     vector<vector<string>> options{
-        {{"-m, --mcs"},
-         {"file with space-separated numbers of linearly "
+        {{"-m, --mcs"}, {"file with binary-encoded MCS (e.g. '100010100...')"}},
+         {{"-c, --compr"}, {"file with space-separated numbers of linearly "
           "compressed "
           "reactions per column in MCS file (e.g. '1 1 3 1 2...'). "
           "If not provided, assumes uncompressed network."}},
@@ -81,7 +81,7 @@ void print_help() {
     wrap_in_field(header, 75);
     cout << endl << endl;
     cout << "Usage:" << endl;
-    wrap_in_field({"PoF_calculator -m MCS_file [OPTIONS...]"}, 50, 3);
+    wrap_in_field({"PoF_calculator -m MCS_file [OPTIONS...]"}, 50, 0, 3);
     cout << endl << endl;
     for (const auto& opt : options) {
         wrap_in_field(opt[0], 15, 0, 3);

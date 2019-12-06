@@ -348,7 +348,7 @@ public:
 		table.print_header();
 
 		// get score for each d and print the corresponding numbers
-		for (size_t d = 0; d <= m_max_d; d++) {
+		for (size_t d = 1; d <= m_max_d; d++) {
 			score = score_cd_table(d);
 			weight = boost::math::pdf(weight_dist, d);
 			weighted_score = score * weight;

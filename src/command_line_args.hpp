@@ -1,81 +1,131 @@
 #ifndef COMMAND_LINE_ARGS_HPP
 #define COMMAND_LINE_ARGS_HPP
 
-#include "../include/cxxopts.hpp"
+#include <iomanip>
+#include <ios>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 using namespace std;
 
-struct parsed_options{
+struct parsed_options {
     string mcs_fname;
     string compr_rxn_fname;
-    unsigned int num_uncompressed_rxns;
-    unsigned int max_d;
-    unsigned int threads;
-    double lambd;
+    unsigned int num_uncompressed_rxns = 0;
+    unsigned int max_d = 0;
+    unsigned int threads = 1;
+    double lambd = 0.5;
 };
 
+vector<string> string2words(const string& str) {
+    string word;
+    stringstream sstream(str);
+    vector<string> words;
 
-parsed_options parse_cmd_line(int argc, char* argv[]){
-    parsed_options parsed_options;
-
-    cxxopts::Options options("PoF_calculator",
-        "Calculate the probability of failure (PoF) for a metabolic network "
-         "given low-cardinality minimal cut sets (MCS). Capable of using MCS "
-         "obtained from a compressed network to yield the PoF of the original "
-         "uncompressed one.\n");
-
-    options.custom_help("-m MCS_file [OPTIONS...]");
-	options.add_options()
-        ("m,mcs", "file with binary-encoded MCS (e.g. '100010100...')",
-            cxxopts::value<string>(), " ")
-        ("c,compr", "file with space-separated numbers of linearly compressed "
-            "reactions per column in MCS file (e.g. '1 1 3 1 2...'). "
-            "If not provided, assumes uncompressed network.",
-            cxxopts::value<string>(), " ")
-        ("r,num_rxns", "number of reactions in the uncompressed network; not "
-            "required for uncompressed case. "
-            "[default=sum of numbers in compr. rxn file",
-            cxxopts::value<unsigned int>(), " ")
-        ("d,d_max", "maximum cardinality up to which PoF should be calculated. "
-            "[default=number of uncrompr. rxns]",
-            cxxopts::value<unsigned int>(), " ")
-        ("t,threads", "number of threads.",
-            cxxopts::value<unsigned int>(), " ")
-        ("l,lambda", "lambda value used in poisson distribution modeling "
-            "mutation frequency. [default=0.5]",
-            cxxopts::value<double>(), " ")
-        ("h,help", "print this message");
-
-	auto result = options.parse(argc, argv);
-
-    if (result.count("help")) {
-        cout << options.help() << endl;
-        exit(0);
+    while (sstream >> word) {
+        words.push_back(word);
     }
+    return words;
+}
 
-    if (result.count("mcs")) {
-        parsed_options.mcs_fname = result["mcs"].as<string>();
+void wrap_in_field(string str, unsigned int field_width,
+                   unsigned int offset = 0, unsigned int initial_offset = 0) {
+    printf("%*s", initial_offset, "");
+    if (str.size() <= field_width) {
+        cout << setw(field_width) << left << str;
     } else {
-        cout << "Please provide at least an MCS file\n" << endl;
-        cout << options.help() << endl;
+        unsigned int curr_width = 0;
+        vector<string> words = string2words(str);
+        for (const string& word : words) {
+            if (word.size() > field_width) {
+                cout << endl << word << endl; // single word larger than field
+                continue;
+            }
+            if (curr_width + word.size() <= field_width) {
+                cout << word << " ";
+                curr_width += word.size() + 1;
+            } else {
+                printf("\n%*s", offset + initial_offset, "");
+                cout << word << " ";
+                curr_width = word.size();
+            }
+        }
+    }
+}
+
+void print_help() {
+    string header{
+        "Calculate the probability of failure (PoF) for a metabolic network "
+        "given low-cardinality minimal cut sets (MCS). Capable of using MCS "
+        "obtained from a compressed network to yield the PoF of the original "
+        "uncompressed one."};
+    vector<vector<string>> options{
+        {{"-m, --mcs"},
+         {"file with space-separated numbers of linearly "
+          "compressed "
+          "reactions per column in MCS file (e.g. '1 1 3 1 2...'). "
+          "If not provided, assumes uncompressed network."}},
+        {{"-r, --rxns"},
+         {"number of reactions in the uncompressed network; not "
+          "required for uncompressed case. "
+          "[default=sum of numbers in compr. rxn file"}},
+        {{"-d, --d_max"},
+         {"maximum cardinality up to which PoF should be "
+          "calculated. default=number of uncrompr. rxns]"}},
+        {{"-t, --threads"}, {"number of threads."}},
+        {{"-l, --lambda"},
+         {"lambda value used in poisson distribution modeling "
+          "mutation frequency. [default=0.5]"}},
+        {{"-h, --help"}, {"print this message"}}};
+    wrap_in_field(header, 75);
+    cout << endl << endl;
+    cout << "Usage:" << endl;
+    wrap_in_field({"PoF_calculator -m MCS_file [OPTIONS...]"}, 50, 3);
+    cout << endl << endl;
+    for (const auto& opt : options) {
+        wrap_in_field(opt[0], 15, 0, 3);
+        wrap_in_field(opt[1], 50, 18, 0);
+        cout << endl << endl;
+    }
+}
+
+parsed_options parse_cmd_line(int argc, char* argv[]) {
+    parsed_options parsed_options;
+    if (argc == 1) {
+        print_help();
         exit(0);
     }
 
-    parsed_options.compr_rxn_fname = (result.count("compr")) ?
-        result["compr"].as<string>() : "";
-
-    parsed_options.num_uncompressed_rxns = (result.count("num_rxns")) ?
-        result["num_rxns"].as<unsigned int>() : 0;
-
-    parsed_options.max_d = (result.count("d_max")) ?
-        result["d_max"].as<unsigned int>() : 0;
-
-    parsed_options.lambd = (result.count("lambd")) ?
-        result["lambd"].as<double>() : 0.5;
-
-    parsed_options.threads = (result.count("threads")) ?
-        result["threads"].as<unsigned int>() : 1;
-
+    for (size_t i = 1; i < argc; i++) {
+        string argument(argv[i]);
+        if ((argument == "-h") || (argument == "--help")) {
+            print_help();
+            exit(0);
+        } else if ((argument == "-m") || (argument == "--mcs")) {
+            parsed_options.mcs_fname = argv[i + 1];
+            i++;
+        } else if ((argument == "-c") || (argument == "--compr")) {
+            parsed_options.compr_rxn_fname = argv[i + 1];
+            i++;
+        } else if ((argument == "-r") || (argument == "--rxns")) {
+            parsed_options.num_uncompressed_rxns = atoi(argv[i + 1]);
+            i++;
+        } else if ((argument == "-d") || (argument == "--d_max")) {
+            parsed_options.max_d = atoi(argv[i + 1]);
+            i++;
+        } else if ((argument == "-l") || (argument == "--lambd")) {
+            parsed_options.lambd = atof(argv[i + 1]);
+            i++;
+        } else if ((argument == "-t") || (argument == "--threads")) {
+            parsed_options.threads = atoi(argv[i + 1]);
+            i++;
+        } else {
+            cout << argv[i] << endl;
+            print_help();
+            exit(0);
+        }
+    }
     return parsed_options;
 }
 

@@ -5,18 +5,13 @@
 using namespace std;
 
 int main() {
+	// for (size_t i = 10; i-- > 0; ) {
+	// 	cout << i << endl;
+	// }
+	//
 
-    // Initializing the integer
-    int num = 500000000;
-
-    cout << "Before setting the width: \n" << num << endl;
-
-    // Using setw()
-    cout << "Setting the width"
-         << " using setw to 5: \n"
-         << setw(5);
-
-    cout << num << endl;
-
+	int i = 10;
+	cout << i-- << endl;
+	cout << i << endl;
     return 0;
 }

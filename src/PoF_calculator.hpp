@@ -223,9 +223,11 @@ public:
 		}
 		// setup progress bar
 		progressbar prog_bar(last_MCS_to_consider);
+		size_t j;
 		// initialize openMP for loop
 		#pragma omp parallel for num_threads(num_threads)
 		for (size_t i = 0; i < last_MCS_to_consider; i++) {
+			j = last_MCS_to_consider - 1 - i;
 			#pragma omp task
 			{
 				unsigned int mcs_card = m_MCSs[i].CARDINALITY();

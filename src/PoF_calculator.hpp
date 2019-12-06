@@ -230,8 +230,8 @@ public:
 			j = last_MCS_to_consider - 1 - i;
 			#pragma omp task
 			{
-				unsigned int mcs_card = m_MCSs[i].CARDINALITY();
-				GET_CARDINALITIES(i, m_MCSs[i], mcs_card, max_d, 1,
+				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
+				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
 				                  Cutset(m_r_reduced));
 				#pragma omp critical
 				{

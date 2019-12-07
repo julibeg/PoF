@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# executable
+PoFcalc
+
+# valgrind output
+callgrind*

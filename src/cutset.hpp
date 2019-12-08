@@ -64,6 +64,7 @@ public:
 	size_t m_nbytes;
 	vector<unsigned char> m_bitarr;
 
+	Cutset() {}				// default constructor: do nothing
 	Cutset(size_t);    		// initialize empty bitarr with number of bytes
 	Cutset(const string &); // initialize from string
 
@@ -281,7 +282,8 @@ map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
 	for (size_t i = 0; i < NSRs.size(); i++) {
 		Mj = sum_vec(NSRs[i]);
 		J = depth + Mj - m;
-		sign = pow(-1, J - 1);
+		sign = (J % 2) ? 1 : -1;
+		// sign = pow(-1, J - 1);
 		if (Mj > max_d) {
 			continue;
 		}

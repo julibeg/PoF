@@ -247,8 +247,8 @@ public:
 	                       Cutset stored){
 		tuple<bool, bool, size_t> plus1_rxn_result;
 		vector<size_t> still_to_check;
+		still_to_check.reserve(index);
 		size_t plus1_rxns = 0;
-		Cutset testCs(Cs.m_len);
 		unsigned int testCd;
 		// check for plus 1 rxns first
 		for (size_t i = 0; i < index; i++) {
@@ -276,7 +276,7 @@ public:
 		if (Cd < max_d) {
 			for (size_t j : still_to_check) {
 				if (!(m_MCSs[j] && stored)) {
-					testCs = Cs | m_MCSs[j];
+					Cutset testCs = Cs | m_MCSs[j];
 					testCd = testCs.CARDINALITY();
 					if (testCd <= max_d) {
 						// no need to check for testCd > Cd, since testCs must

@@ -152,8 +152,7 @@ inline Cutset Cutset::operator | (const Cutset &other_CS) const {
 
 
 inline bool Cutset::operator && (const Cutset &other_CS) const {
-	Cutset new_cs(m_len);
-	for (size_t i = 0; i < new_cs.m_nbytes; i++) {
+	for (size_t i = 0; i < m_nbytes; i++) {
 		if (m_bitarr[i] & other_CS.m_bitarr[i]) {
 			return true;
 		}

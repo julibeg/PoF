@@ -64,7 +64,6 @@ public:
 	size_t m_nbytes;
 	vector<unsigned char> m_bitarr;
 
-	Cutset() {}				// default constructor: do nothing
 	Cutset(size_t);    		// initialize empty bitarr with number of bytes
 	Cutset(const string &); // initialize from string
 
@@ -244,8 +243,12 @@ tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 	for (size_t byte = 0; byte < m_nbytes; byte++) {
 		b1 = m_bitarr[byte];
 		b2 = other_CS.m_bitarr[byte];
-		plus1_rxns = ~b1 & b2;
+		plus1_rxns = b2 & ~b1;
 		plus1_rxn_count += count_byte(plus1_rxns);
+		// end if there's already more than 1 extra rxn
+		if (plus1_rxn_count > 1) {
+			return tuple<bool, bool, size_t>{false, true, 0};
+		}
 		// if there's only 1 extra rxn, save its index
 		if (count_byte(plus1_rxns) == 1) {
 			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
@@ -254,10 +257,6 @@ tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 					break;
 				}
 			}
-			// end if there's already more than 1 extra rxn
-		}
-		if (plus1_rxn_count > 1) {
-			return tuple<bool, bool, size_t>{false, true, 0};
 		}
 	}
 	// loop completed; check if there was an extra rxn
@@ -282,7 +281,6 @@ map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
 		Mj = sum_vec(NSRs[i]);
 		J = depth + Mj - m;
 		sign = (J % 2) ? 1 : -1;
-		// sign = pow(-1, J - 1);
 		if (Mj > max_d) {
 			continue;
 		}

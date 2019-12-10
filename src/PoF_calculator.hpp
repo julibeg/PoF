@@ -307,7 +307,7 @@ public:
 				}
 			}
 		} else {
-			int sign = pow(-1, depth - 1);
+			int sign = (depth % 2) ? 1 : -1;
 #pragma omp critical
 			{ m_cd_table[Cd - 1][plus1_rxns] += sign; }
 		}

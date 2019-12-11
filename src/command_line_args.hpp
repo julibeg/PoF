@@ -15,7 +15,7 @@ struct parsed_options {
     unsigned int num_uncompressed_rxns = 0;
     unsigned int max_d = 0;
     unsigned int threads = 1;
-    double lambd = 0.5;
+    double p = 1e-3;
 };
 
 vector<string> string2words(const string& str) {
@@ -73,10 +73,10 @@ void print_help() {
         {{"-d, --d_max"},
          {"maximum cardinality up to which PoF should be "
           "calculated. default=number of uncrompr. rxns]"}},
-        {{"-t, --threads"}, {"number of threads."}},
-        {{"-l, --lambda"},
-         {"lambda value used in poisson distribution modeling "
-          "mutation frequency. [default=0.5]"}},
+        {{"-t, --threads"}, {"number of threads. [default=1]"}},
+        {{"-p, --prob"},
+         {"estimated probability of a loss-of-function mutation. "
+         "[default=1e-3]"}},
         {{"-h, --help"}, {"print this message"}}};
     wrap_in_field(header, 75);
     cout << endl << endl;
@@ -114,8 +114,14 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
         } else if ((argument == "-d") || (argument == "--d_max")) {
             parsed_options.max_d = atoi(argv[i + 1]);
             i++;
-        } else if ((argument == "-l") || (argument == "--lambd")) {
-            parsed_options.lambd = atof(argv[i + 1]);
+        } else if ((argument == "-p") || (argument == "--prob")) {
+            double p = atof(argv[i + 1]);
+            if ((p >= 1) || (p < 0)){
+                cout << "ERROR: p should be between 0 and 1\n" << endl;
+                print_help();
+                exit(1);
+            }
+            parsed_options.p = p;
             i++;
         } else if ((argument == "-t") || (argument == "--threads")) {
             parsed_options.threads = atoi(argv[i + 1]);
@@ -123,7 +129,7 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
         } else {
             cout << argv[i] << endl;
             print_help();
-            exit(0);
+            exit(2);
         }
     }
     return parsed_options;

@@ -276,7 +276,9 @@ public:
 		if (Cd < max_d) {
 			for (size_t j : still_to_check) {
 				if (!(m_MCSs[j] && stored)) {
-					Cutset testCs = Cs | m_MCSs[j];
+					Cutset testCs = Cs | m_MCSs[j]; // looks inefficient to
+					// create a new Cutset here in every iteration but is
+					// actually not done after taken care of by optimizer
 					testCd = testCs.CARDINALITY();
 					if (testCd <= max_d) {
 						// no need to check for testCd > Cd, since testCs must
@@ -340,8 +342,7 @@ public:
 		return prod1 * prod2;
 	}
 
-	void print_results(double lambd){
-		boost::math::poisson_distribution<double> weight_dist(lambd);
+	void print_results(double p){
 		double score, weight, weighted_score, acc_weighted_score = 0, found_CS,
 		       possible_CS;
 		// initialize table to print results
@@ -356,7 +357,7 @@ public:
 		// get score for each d and print the corresponding numbers
 		for (size_t d = 1; d <= m_max_d; d++) {
 			score = score_cd_table(d);
-			weight = boost::math::pdf(weight_dist, d);
+			weight = binom_dist_weight(m_r, d, p);
 			weighted_score = score * weight;
 			acc_weighted_score += weighted_score;
 			possible_CS = binom((double)m_r, (double)d);

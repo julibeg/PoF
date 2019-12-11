@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
 	calc.get_cardinalities(cmd_opts.max_d, cmd_opts.threads);
 
 	// print result
-	calc.print_results(cmd_opts.lambd);
+	calc.print_results(cmd_opts.p);
 
 	// calc.print_cd_table();
 	// cout << calc.m_r << endl;

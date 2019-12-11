@@ -99,4 +99,11 @@ template <typename T> inline T sum_vec(vector<T> vec){
 }
 
 
+template <typename T1, typename T2> 
+double binom_dist_weight(T1 n, T2 k, double p=0.5){
+	return binom(static_cast<double>(n), static_cast<double>(k)) *
+	       pow(p, k) * pow(1 - p, n - k);
+}
+
+
 #endif

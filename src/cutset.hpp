@@ -64,7 +64,7 @@ public:
 	size_t m_nbytes;
 	vector<unsigned char> m_bitarr;
 
-	Cutset(size_t);    		// initialize empty bitarr with number of bytes
+	Cutset(size_t);                 // initialize empty bitarr with number of bytes
 	Cutset(const string &); // initialize from string
 
 	void print(bool) const;
@@ -167,11 +167,13 @@ vector<size_t> Cutset::get_active_rxns() const {
 	active_rxns.reserve(m_len / 100 > 10 ? m_len / 100 : 10);
 	size_t pos;
 	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-			if (m_bitarr[byte] & MASK >> bit) {
-				pos = byte * CHAR_BIT + bit;
-				active_rxns.push_back(pos);
-				count++;
+		if (m_bitarr[byte]) {
+			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
+				if (m_bitarr[byte] & MASK >> bit) {
+					pos = byte * CHAR_BIT + bit;
+					active_rxns.push_back(pos);
+					count++;
+				}
 			}
 		}
 	}
@@ -186,10 +188,12 @@ vector<size_t> Cutset::get_active_rxns() const {
 size_t Cutset::get_first_active_rxn() const {
 	size_t pos = 0;
 	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-			if (m_bitarr[byte] & MASK >> bit) {
-				pos = byte * CHAR_BIT + bit;
-				return pos;
+		if (m_bitarr[byte]) {
+			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
+				if (m_bitarr[byte] & MASK >> bit) {
+					pos = byte * CHAR_BIT + bit;
+					return pos;
+				}
 			}
 		}
 	}
@@ -227,9 +231,9 @@ Cutset Cutset::remove_rxns(const vector<size_t> &del_rxns) const {
 
 
 /**
- * loops over another cutset and returns whether there
- *      -) is only a single additional reaction active (i.e. not present in this
- * CS)
+ * loops over another cutset and returns whether
+ *      -) there is only a single additional reaction active (i.e. not present
+ *      in this CS)
  *           --> first bool == true
  *      -) there are more than 1 extra reactions in the other cutset
  *           --> second bool == true
@@ -237,7 +241,7 @@ Cutset Cutset::remove_rxns(const vector<size_t> &del_rxns) const {
  *      single extra reaction.
  */
 tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
-	size_t plus1_rxn_idx = 0;
+	size_t plus1_rxn_idx;
 	unsigned char b1, b2, plus1_rxns;
 	unsigned int plus1_rxn_count = 0;
 	for (size_t byte = 0; byte < m_nbytes; byte++) {
@@ -288,5 +292,6 @@ map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
 	}
 	return table;
 }
+
 
 #endif

@@ -10,7 +10,6 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <boost/math/distributions/poisson.hpp>
 using namespace std;
 
 class PoF_calculator {
@@ -299,8 +298,8 @@ public:
 			}
 			map<size_t, int> table =
 				resolve_compressed_cutset(NCRs, max_d, depth);
-// single threaded now
-#pragma omp critical
+			// single threaded now
+			#pragma omp critical
 			{
 				for (const auto &elem : table) {
 					size_t Mj = elem.first;
@@ -310,8 +309,10 @@ public:
 			}
 		} else {
 			int sign = (depth % 2) ? 1 : -1;
-#pragma omp critical
-			{ m_cd_table[Cd - 1][plus1_rxns] += sign; }
+			#pragma omp critical
+			{
+				m_cd_table[Cd - 1][plus1_rxns] += sign;
+			}
 		}
 	}
 
@@ -360,7 +361,8 @@ public:
 			weight = binom_dist_weight(m_r, d, p);
 			weighted_score = score * weight;
 			acc_weighted_score += weighted_score;
-			possible_CS = binom((double)m_r, (double)d);
+			possible_CS = binom(static_cast<double>(m_r),
+			                    static_cast<double>(d));
 			found_CS = score * possible_CS;
 
 			vector<double> numbers {d, weight, score, weighted_score,

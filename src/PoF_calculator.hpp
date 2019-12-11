@@ -362,7 +362,8 @@ public:
 			weight = binom_dist_weight(m_r, d, p);
 			weighted_score = score * weight;
 			acc_weighted_score += weighted_score;
-			possible_CS = binom((double)m_r, (double)d);
+			possible_CS = binom(static_cast<double>(m_r),
+			                    static_cast<double>(d));
 			found_CS = score * possible_CS;
 
 			vector<double> numbers {d, weight, score, weighted_score,

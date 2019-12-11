@@ -10,7 +10,6 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <boost/math/distributions/poisson.hpp>
 using namespace std;
 
 class PoF_calculator {
@@ -227,10 +226,13 @@ public:
 		// initialize openMP for loop
 		#pragma omp parallel for num_threads(num_threads)
 		for (size_t i = 0; i < last_MCS_to_consider; i++) {
+			// start with high cardinality MCS first --> loop speeds up instead
+			// of slowing down --> nicer.
+			size_t j = last_MCS_to_consider - i - 1;
 			#pragma omp task
 			{
-				unsigned int mcs_card = m_MCSs[i].CARDINALITY();
-				GET_CARDINALITIES(i, m_MCSs[i], mcs_card, max_d, 1,
+				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
+				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
 				                  Cutset(m_r_reduced));
 				#pragma omp critical
 				{

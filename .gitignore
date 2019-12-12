@@ -36,3 +36,6 @@ PoFcalc
 
 # valgrind output
 callgrind*
+
+# test files
+src/test*.cpp

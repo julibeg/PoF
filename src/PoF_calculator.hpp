@@ -17,7 +17,7 @@ public:
 	bool m_compressed = false;
 	vector<unsigned int> m_compr_rxn_counts;
 	vector<size_t> m_mcs1_rxns;
-	size_t m_r, m_nbytes, m_nMCS, m_r_reduced, m_nbytes_reduced, m_nMCS_reduced,
+	size_t m_r, m_nMCS, m_r_reduced, m_nMCS_reduced,
 	       m_num_mcs1 = 0, m_num_mcs1_uncompressed = 0;
 	bool m_MCS_d1_present = false;
 	vector<Cutset> m_MCSs;
@@ -63,11 +63,9 @@ public:
 	PoF_calculator(const string &mcs_input_fname){
 		vector<Cutset> MCSs = read_MCS_file(mcs_input_fname);
 		m_r = MCSs[0].m_len;
-		m_nbytes = MCSs[0].m_nbytes;
 		m_nMCS = MCSs.size();
 		// set 'reduced' variables (are overwritten in reduce_MCS_arr() later)
 		m_r_reduced = m_r;
-		m_nbytes_reduced = m_nbytes;
 		m_nMCS_reduced = m_nMCS;
 		// only reduce matrix if MCS with d=1 are present
 		if ((MCSs[0].CARDINALITY() == 1)) {
@@ -124,7 +122,6 @@ public:
 				m_mcs1_rxns.push_back(cs.get_first_active_rxn());
 			}
 			m_r_reduced = 0;
-			m_nbytes_reduced = 0;
 			m_nMCS_reduced = 0;
 			return vector<Cutset>();
 
@@ -139,7 +136,6 @@ public:
 				m_mcs1_rxns.push_back(MCSs[i].get_first_active_rxn());
 			}
 			m_r_reduced = m_r - m_num_mcs1;
-			m_nbytes_reduced = int_div_ceil(m_r_reduced, (size_t)CHAR_BIT);
 			m_nMCS_reduced = m_nMCS - m_num_mcs1;
 			// initialize return vector
 			vector<Cutset> reduced_arr;
@@ -257,7 +253,7 @@ public:
 			if (!(m_MCSs[i] && stored)) {
 				plus1_rxn_result = Cs.find_plus1_rxn(m_MCSs[i]);
 				if (get<0>(plus1_rxn_result)) {
-					stored.set_bit(get<2>(plus1_rxn_result));
+					stored.add_reaction(get<2>(plus1_rxn_result));
 				} else if (get<1>(plus1_rxn_result)) {
 					still_to_check.push_back(i);
 				} else { // m_MCSs[i] is a subset

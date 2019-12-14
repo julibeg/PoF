@@ -135,6 +135,8 @@ public:
 				}
 				m_mcs1_rxns.push_back(MCSs[i].get_first_active_rxn());
 			}
+			// sort mcs1 rxns --> required for Cutset::remove_rxns
+			sort(m_mcs1_rxns.begin(), m_mcs1_rxns.end());
 			m_r_reduced = m_r - m_num_mcs1;
 			m_nMCS_reduced = m_nMCS - m_num_mcs1;
 			// initialize return vector

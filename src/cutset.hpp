@@ -156,15 +156,37 @@ size_t Cutset::get_first_active_rxn() const {
 	return m_active_rxns[0];
 }
 
-
-Cutset Cutset::remove_rxns(const vector<size_t> &del_rxns) const {
+/*
+ * requires del_rxns to be sorted!
+ */
+Cutset Cutset::remove_rxns(const vector<size_t>& del_rxns) const{
 	Cutset new_cs(m_len - del_rxns.size());
-	for (auto r : m_active_rxns){
-		if (!in_vec(del_rxns, r)) {
-			new_cs.m_active_rxns.push_back(r);
-		}
-	}
-	return new_cs;
+	new_cs.m_active_rxns.reserve(m_active_rxns.size());
+
+	auto first1 = m_active_rxns.cbegin();
+    auto last1 = m_active_rxns.cend();
+    auto first2 = del_rxns.cbegin();
+    auto last2 = del_rxns.cend();
+
+    size_t del_rxn_count = 0;
+    while (first1 != last1) {
+        if (first2 == last2){
+            for (; first1 != last1; first1++){
+                new_cs.m_active_rxns.push_back(*first1 - del_rxn_count);
+            }
+            break;
+        }
+        if (*first2 <= *first1) {
+            del_rxn_count++;
+            if (*first1 == *first2){
+                first1++;
+            }
+            first2++;
+        } else {
+            new_cs.m_active_rxns.push_back(*first1++ - del_rxn_count);
+        }
+    }
+    return new_cs;
 }
 
 

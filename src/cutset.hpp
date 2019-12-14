@@ -14,6 +14,7 @@
 using namespace std;
 
 typedef map<pair<size_t, size_t>, int> Counter;
+typedef unsigned int rxn_idx;
 
 // make '10000000' mask
 unsigned char MASK = pow(2, CHAR_BIT - 1);
@@ -61,7 +62,7 @@ inline unsigned int count_byte(const unsigned char &byte){
 class Cutset {
 public:
 	size_t m_len;
-	vector<size_t> m_active_rxns;
+	vector<rxn_idx> m_active_rxns;
 
 	Cutset(size_t);                 // initialize empty bitarr with number of bytes
 	Cutset(const string &); 		// initialize from string
@@ -70,11 +71,11 @@ public:
 	unsigned int CARDINALITY() const;
 	Cutset operator | (const Cutset &) const;
 	bool operator && (const Cutset &) const;
-	vector<size_t> get_active_rxns() const;
+	vector<rxn_idx> get_active_rxns() const;
 	size_t get_first_active_rxn() const;
-	void add_reaction(size_t);
-	Cutset remove_rxns(const vector<size_t> &) const;
-	tuple<bool, bool, size_t> find_plus1_rxn(const Cutset &) const;
+	void add_reaction(rxn_idx);
+	Cutset remove_rxns(const vector<rxn_idx> &) const;
+	tuple<bool, bool, rxn_idx> find_plus1_rxn(const Cutset &) const;
 	static Counter resolve_compressed_cutset(const vector<unsigned int> &,
 	                                         unsigned int, unsigned int);
 
@@ -101,7 +102,7 @@ void Cutset::extract_active_rxns_from_string(const string &cs){
 
 
 void Cutset::print(bool new_line=true) const {
-	for (size_t i = 0; i < m_len; i++) {
+	for (rxn_idx i = 0; i < m_len; i++) {
 		cout << (in_vec(m_active_rxns, i) ? "1" : "0");
 	}
 	if (new_line){
@@ -147,7 +148,7 @@ inline bool Cutset::operator && (const Cutset &other_CS) const {
 }
 
 
-vector<size_t> Cutset::get_active_rxns() const {
+vector<rxn_idx> Cutset::get_active_rxns() const {
 	return m_active_rxns;
 }
 
@@ -159,7 +160,7 @@ size_t Cutset::get_first_active_rxn() const {
 /*
  * requires del_rxns to be sorted!
  */
-Cutset Cutset::remove_rxns(const vector<size_t>& del_rxns) const{
+Cutset Cutset::remove_rxns(const vector<rxn_idx>& del_rxns) const{
 	Cutset new_cs(m_len - del_rxns.size());
 	new_cs.m_active_rxns.reserve(m_active_rxns.size());
 
@@ -190,7 +191,7 @@ Cutset Cutset::remove_rxns(const vector<size_t>& del_rxns) const{
 }
 
 
-void Cutset::add_reaction(size_t new_rxn){
+void Cutset::add_reaction(rxn_idx new_rxn){
 	auto itr = m_active_rxns.begin();
 	for (; itr!=m_active_rxns.end(); ++itr){
 		if (*itr >= new_rxn){
@@ -210,13 +211,14 @@ void Cutset::add_reaction(size_t new_rxn){
  *      in the first case, the third element in the tuple is the index of the
  *      single extra reaction.
  */
-tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
+tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
+	typedef tuple<bool, bool, rxn_idx> result;
 	auto first1 = m_active_rxns.begin();
 	auto last1 = m_active_rxns.end();
 	auto first2 = other_CS.m_active_rxns.begin();
 	auto last2 = other_CS.m_active_rxns.end();
 	unsigned int plus1_rxn_count = 0;
-	size_t plus1_rxn_idx;
+	rxn_idx plus1_rxn_idx;
 	while (first1 != last1) {
 		if (first2 == last2)
 			break;
@@ -224,7 +226,7 @@ tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 			plus1_rxn_idx = *first2++;
 			plus1_rxn_count++;
 			if (plus1_rxn_count > 1) {
-				return tuple<bool, bool, size_t>(false, true, 0);
+				return result{false, true, 0};
 			}
 		} else {
 			if (*first1 == *first2){
@@ -237,13 +239,13 @@ tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 		plus1_rxn_count += last2 - first2;
 		plus1_rxn_idx = *(last2 - 1);
 		if (plus1_rxn_count > 1) {
-			return tuple<bool, bool, size_t>(false, true, 0);
+			return result{false, true, 0};
 		}
 	}
 	if (plus1_rxn_count == 1) {
-		return tuple<bool, bool, size_t>(true, false, plus1_rxn_idx);
+		return result{true, false, plus1_rxn_idx};
 	} else {
-		return tuple<bool, bool, size_t>(false, false, 0);
+		return result{false, false, 0};
 	}
 }
 

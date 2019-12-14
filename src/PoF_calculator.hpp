@@ -16,7 +16,7 @@ class PoF_calculator {
 public:
 	bool m_compressed = false;
 	vector<unsigned int> m_compr_rxn_counts;
-	vector<size_t> m_mcs1_rxns;
+	vector<rxn_idx> m_mcs1_rxns;
 	size_t m_r, m_nMCS, m_r_reduced, m_nMCS_reduced,
 	       m_num_mcs1 = 0, m_num_mcs1_uncompressed = 0;
 	bool m_MCS_d1_present = false;
@@ -51,7 +51,7 @@ public:
 		// reduce the vector of compressed rxns
 		vector<unsigned int> temp;
 		temp.reserve(m_compr_rxn_counts.size() - m_mcs1_rxns.size());
-		for (size_t i = 0; i < m_compr_rxn_counts.size(); i++) {
+		for (rxn_idx i = 0; i < m_compr_rxn_counts.size(); i++) {
 			if (!in_vec(m_mcs1_rxns, i)) {
 				temp.push_back(m_compr_rxn_counts[i]);
 			}
@@ -291,10 +291,10 @@ public:
 		}
 		// get active rxns of current cutset
 		if (m_compressed) {
-			vector<size_t> Cs_rxns = Cs.get_active_rxns();
+			vector<rxn_idx> Cs_rxns = Cs.get_active_rxns();
 			vector<unsigned int> NCRs;
 			NCRs.reserve(Cs_rxns.size());
-			for (size_t rxn_id : Cs.get_active_rxns()) {
+			for (auto rxn_id : Cs.get_active_rxns()) {
 				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
 			}
 			map<size_t, int> table =

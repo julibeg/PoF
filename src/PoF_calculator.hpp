@@ -293,9 +293,8 @@ public:
 		}
 		// get active rxns of current cutset
 		if (m_compressed) {
-			vector<size_t> Cs_rxns = Cs.get_active_rxns();
 			vector<unsigned int> NCRs;
-			NCRs.reserve(Cs_rxns.size());
+			NCRs.reserve(Cs.CARDINALITY());
 			for (size_t rxn_id : Cs.get_active_rxns()) {
 				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
 			}

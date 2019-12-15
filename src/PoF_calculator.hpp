@@ -294,9 +294,10 @@ public:
 			vector<rxn_idx> Cs_rxns = Cs.get_active_rxns();
 			vector<unsigned int> NCRs;
 			NCRs.reserve(Cs_rxns.size());
-			for (auto rxn_id : Cs.get_active_rxns()) {
+			for (auto rxn_id : Cs_rxns) {
 				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
 			}
+			sort(NCRs.begin(), NCRs.end());
 			map<size_t, int> table =
 				resolve_compressed_cutset(NCRs, max_d, depth);
 			// single threaded now

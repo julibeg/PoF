@@ -99,10 +99,34 @@ template <typename T> inline T sum_vec(vector<T> vec){
 }
 
 
-template <typename T1, typename T2> 
+template <typename T1, typename T2>
 double binom_dist_weight(T1 n, T2 k, double p=0.5){
 	return binom(static_cast<double>(n), static_cast<double>(k)) *
 	       pow(p, k) * pow(1 - p, n - k);
+}
+
+
+template<typename T>
+pair<vector<T>, vector<T>> get_Mjs_and_counts(const vector<T> &NCRs){
+	static map<vector<T>, pair<vector<T>, vector<T>>> cache;
+	// search the cache table
+	auto search = cache.find(NCRs);
+	if (search != cache.end()) {
+		return search->second;
+	}
+	// result not found --> calculate it and add to cache
+	Matrix<T> NSRs = get_NSRs(NCRs);
+	vector<T> counts = get_combs(NCRs, NSRs);
+	vector<T> Mjs;
+	Mjs.reserve(NSRs.size());
+	for (size_t i = 0; i < NSRs.size(); i++) {
+		Mjs.push_back(sum_vec(NSRs[i]));
+	}
+	#pragma omp critical
+	{
+		cache[NCRs] = pair<vector<T>, vector<T>> {Mjs, counts};
+	}
+	return pair<vector<T>, vector<T>> {Mjs, counts};
 }
 
 

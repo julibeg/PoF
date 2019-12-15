@@ -298,6 +298,7 @@ public:
 			for (size_t rxn_id : Cs.get_active_rxns()) {
 				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
 			}
+			sort(NCRs.begin(), NCRs.end());
 			map<size_t, int> table =
 				resolve_compressed_cutset(NCRs, max_d, depth);
 			// single threaded now

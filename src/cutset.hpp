@@ -266,6 +266,28 @@ tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 }
 
 
+// template <typename T>
+// map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
+//                                            unsigned int max_d,
+//                                            unsigned int depth=1){
+// 	map<size_t, int> table;
+// 	unsigned int Mj, J, m = NCRs.size();
+// 	char sign;
+// 	Matrix<T> NSRs = get_NSRs(NCRs);
+// 	vector<T> counts = get_combs(NCRs, NSRs);
+// 	for (size_t i = 0; i < NSRs.size(); i++) {
+// 		Mj = sum_vec(NSRs[i]);
+// 		J = depth + Mj - m;
+// 		sign = (J % 2) ? 1 : -1;
+// 		if (Mj > max_d) {
+// 			continue;
+// 		}
+// 		table[Mj] += round((int) counts[i] * sign);
+// 	}
+// 	return table;
+// }
+
+
 template <typename T>
 map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
                                            unsigned int max_d,
@@ -273,10 +295,11 @@ map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
 	map<size_t, int> table;
 	unsigned int Mj, J, m = NCRs.size();
 	char sign;
-	Matrix<T> NSRs = get_NSRs(NCRs);
-	vector<T> counts = get_combs(NCRs, NSRs);
-	for (size_t i = 0; i < NSRs.size(); i++) {
-		Mj = sum_vec(NSRs[i]);
+	auto Mjs_counts = get_Mjs_and_counts(NCRs);
+	auto Mjs = Mjs_counts.first;
+	auto counts = Mjs_counts.second;
+	for (size_t i = 0; i < Mjs.size(); i++) {
+		Mj = Mjs[i];
 		J = depth + Mj - m;
 		sign = (J % 2) ? 1 : -1;
 		if (Mj > max_d) {
@@ -286,6 +309,5 @@ map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
 	}
 	return table;
 }
-
 
 #endif

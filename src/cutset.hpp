@@ -162,7 +162,6 @@ inline bool Cutset::operator && (const Cutset &other_CS) const {
 
 vector<size_t> Cutset::get_active_rxns() const {
 	vector<size_t> active_rxns;
-	size_t count = 0;
 	// reserve some space to minimize frequent reallocations
 	active_rxns.reserve(m_len / 100 > 10 ? m_len / 100 : 10);
 	size_t pos;
@@ -172,15 +171,10 @@ vector<size_t> Cutset::get_active_rxns() const {
 				if (m_bitarr[byte] & MASK >> bit) {
 					pos = byte * CHAR_BIT + bit;
 					active_rxns.push_back(pos);
-					count++;
 				}
 			}
 		}
 	}
-	// if (count == 0) {
-	//     throw invalid_argument("Cutset does not have active reactions");
-	// }
-	active_rxns.resize(count);
 	return active_rxns;
 }
 

@@ -123,7 +123,10 @@ pair<vector<T>, vector<T>> get_Mjs_and_counts(const vector<T> &NCRs){
 	for (size_t i = 0; i < NSRs.size(); i++) {
 		Mjs.push_back(sum_vec(NSRs[i]));
 	}
-	cache[NCRs] = pair<vector<T>, vector<T>> {Mjs, counts};
+	#pragma omp critical
+	{
+		cache[NCRs] = pair<vector<T>, vector<T>> {Mjs, counts};
+	}
 	return pair<vector<T>, vector<T>> {Mjs, counts};
 }
 

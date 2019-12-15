@@ -62,10 +62,13 @@ class Cutset {
 public:
 	size_t m_len;
 	size_t m_nbytes;
+	size_t m_nbytes_meta;
 	vector<unsigned char> m_bitarr;
+	vector<unsigned char> m_bitarr_meta;
 
-	Cutset(size_t);                 // initialize empty bitarr with number of bytes
-	Cutset(const string &); // initialize from string
+	Cutset(){}					// generic constructor
+	Cutset(size_t);             // initialize empty bitarr with number of bytes
+	Cutset(const string &); 	// initialize from string
 
 	void print(bool) const;
 	unsigned int CARDINALITY() const;
@@ -80,21 +83,21 @@ public:
 	                                         unsigned int, unsigned int);
 
 private:
-	bool read_bit(size_t) const;
 	static void print_byte(const unsigned char);
+	bool read_bit(size_t) const;
 	void string_to_bitarr(const string &);
 };
 
 Cutset::Cutset(size_t num_rxns) : m_len(num_rxns){
-	m_nbytes = int_div_ceil(m_len, (size_t)CHAR_BIT); // int. div. with ceiling
+	m_nbytes_meta = int_div_ceil(m_len, (size_t) CHAR_BIT * CHAR_BIT);
+	m_bitarr_meta.resize(m_nbytes_meta);
+	m_nbytes = m_nbytes_meta * CHAR_BIT;
 	m_bitarr.resize(m_nbytes);
 }
 
 
-Cutset::Cutset(const string &cs){
-	m_len = cs.length();
-	m_nbytes = int_div_ceil(m_len, (size_t)CHAR_BIT); // int. div. with ceiling
-	m_bitarr.resize(m_nbytes);
+Cutset::Cutset(const string &cs)
+	: Cutset(cs.size()){
 	string_to_bitarr(cs);
 }
 
@@ -103,6 +106,10 @@ inline void Cutset::set_bit(size_t pos){
 	size_t byte_pos = pos / CHAR_BIT;
 	size_t bit_pos = pos % CHAR_BIT;
 	m_bitarr[byte_pos] |= (MASK >> bit_pos);
+
+	size_t byte_pos_meta = byte_pos / CHAR_BIT;
+	size_t bit_pos_meta = byte_pos % CHAR_BIT;
+	m_bitarr_meta[byte_pos_meta] |= (MASK >> bit_pos_meta);
 }
 
 
@@ -134,8 +141,12 @@ void Cutset::print(bool new_line=true) const {
 
 inline unsigned int Cutset::CARDINALITY() const {
 	unsigned int card = 0;
-	for (size_t i = 0; i < m_nbytes; i++) {
-		card += count_byte(m_bitarr[i]);
+	for (size_t i = 0; i < m_nbytes_meta; i++) {
+		if (m_bitarr_meta[i]){
+			for (size_t j = 0; j < CHAR_BIT; j++) {
+				card += count_byte(m_bitarr[i * CHAR_BIT + j]);
+			}
+		}
 	}
 	return card;
 }
@@ -143,17 +154,36 @@ inline unsigned int Cutset::CARDINALITY() const {
 
 inline Cutset Cutset::operator | (const Cutset &other_CS) const {
 	Cutset new_cs(m_len);
-	for (size_t i = 0; i < new_cs.m_nbytes; i++) {
-		new_cs.m_bitarr[i] = m_bitarr[i] | other_CS.m_bitarr[i];
+	// Cutset new_cs;
+	// new_cs.m_len = m_len;
+	// new_cs.m_nbytes = m_nbytes;
+	// new_cs.m_bitarr.reserve(m_nbytes);
+	for (size_t i = 0; i < new_cs.m_nbytes_meta; i++) {
+		// new_cs.m_bitarr[i] = m_bitarr[i] | other_CS.m_bitarr[i];
+		// new_cs.m_bitarr.push_back(m_bitarr[i] | other_CS.m_bitarr[i]);
+		if (m_bitarr_meta[i] || other_CS.m_bitarr_meta[i]){
+			new_cs.m_bitarr_meta[i] =
+				m_bitarr_meta[i] | other_CS.m_bitarr_meta[i];
+			for (size_t j = 0; j < CHAR_BIT; j++) {
+				size_t byte_pos = i * CHAR_BIT + j;
+				new_cs.m_bitarr[byte_pos] =
+					m_bitarr[byte_pos] | other_CS.m_bitarr[byte_pos];
+			}
+		}
 	}
 	return new_cs;
 }
 
 
 inline bool Cutset::operator && (const Cutset &other_CS) const {
-	for (size_t i = 0; i < m_nbytes; i++) {
-		if (m_bitarr[i] & other_CS.m_bitarr[i]) {
-			return true;
+	for (size_t i = 0; i < m_nbytes_meta; i++) {
+		if (m_bitarr_meta[i] & other_CS.m_bitarr_meta[i]) {
+			for (size_t j = 0; j < CHAR_BIT; j++) {
+				size_t byte_pos = i * CHAR_BIT + j;
+				if (m_bitarr[byte_pos] & other_CS.m_bitarr[byte_pos]) {
+					return true;
+				}
+			}
 		}
 	}
 	return false;
@@ -162,37 +192,41 @@ inline bool Cutset::operator && (const Cutset &other_CS) const {
 
 vector<size_t> Cutset::get_active_rxns() const {
 	vector<size_t> active_rxns;
-	size_t count = 0;
 	// reserve some space to minimize frequent reallocations
 	active_rxns.reserve(m_len / 100 > 10 ? m_len / 100 : 10);
 	size_t pos;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		if (m_bitarr[byte]) {
-			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-				if (m_bitarr[byte] & MASK >> bit) {
-					pos = byte * CHAR_BIT + bit;
-					active_rxns.push_back(pos);
-					count++;
+	for (size_t i = 0; i < m_nbytes_meta; i++) {
+		if (m_bitarr_meta[i]) {
+			for (size_t j = 0; j < CHAR_BIT; j++) {
+				size_t byte_pos = i * CHAR_BIT + j;
+				if (m_bitarr[byte_pos]) {
+					for (size_t bit = 0; bit < CHAR_BIT; bit++) {
+						if (m_bitarr[byte_pos] & MASK >> bit) {
+							pos = byte_pos * CHAR_BIT + bit;
+							active_rxns.push_back(pos);
+						}
+					}
 				}
 			}
 		}
 	}
-	// if (count == 0) {
-	//     throw invalid_argument("Cutset does not have active reactions");
-	// }
-	active_rxns.resize(count);
 	return active_rxns;
 }
 
 
 size_t Cutset::get_first_active_rxn() const {
-	size_t pos = 0;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		if (m_bitarr[byte]) {
-			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-				if (m_bitarr[byte] & MASK >> bit) {
-					pos = byte * CHAR_BIT + bit;
-					return pos;
+	size_t pos;
+	for (size_t i = 0; i < m_nbytes_meta; i++) {
+		if (m_bitarr_meta[i]) {
+			for (size_t j = 0; j < CHAR_BIT; j++) {
+				size_t byte_pos = i * CHAR_BIT + j;
+				if (m_bitarr[byte_pos]) {
+					for (size_t bit = 0; bit < CHAR_BIT; bit++) {
+						if (m_bitarr[byte_pos] & MASK >> bit) {
+							pos = byte_pos * CHAR_BIT + bit;
+							return pos;
+						}
+					}
 				}
 			}
 		}
@@ -244,21 +278,26 @@ tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 	size_t plus1_rxn_idx;
 	unsigned char b1, b2, plus1_rxns;
 	unsigned int plus1_rxn_count = 0;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		b1 = m_bitarr[byte];
-		b2 = other_CS.m_bitarr[byte];
-		plus1_rxns = b2 & ~b1;
-		plus1_rxn_count += count_byte(plus1_rxns);
-		// end if there's already more than 1 extra rxn
-		if (plus1_rxn_count > 1) {
-			return tuple<bool, bool, size_t>{false, true, 0};
-		}
-		// if there's only 1 extra rxn, save its index
-		if (count_byte(plus1_rxns) == 1) {
-			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-				if (!(b1 & MASK >> bit) && (b2 & MASK >> bit)) {
-					plus1_rxn_idx = byte * CHAR_BIT + bit;
-					break;
+	for (size_t i = 0; i < other_CS.m_nbytes_meta; i++) {
+		if (other_CS.m_bitarr_meta[i]) {
+			for (size_t j = 0; j < CHAR_BIT; j++) {
+				size_t byte_pos = i * CHAR_BIT + j;
+				b1 = m_bitarr[byte_pos];
+				b2 = other_CS.m_bitarr[byte_pos];
+				plus1_rxns = b2 & ~b1;
+				plus1_rxn_count += count_byte(plus1_rxns);
+				// end if there's already more than 1 extra rxn
+				if (plus1_rxn_count > 1) {
+					return tuple<bool, bool, size_t>{false, true, 0};
+				}
+				// if there's only 1 extra rxn, save its index
+				if (count_byte(plus1_rxns) == 1) {
+					for (size_t bit = 0; bit < CHAR_BIT; bit++) {
+						if (!(b1 & MASK >> bit) && (b2 & MASK >> bit)) {
+							plus1_rxn_idx = byte_pos * CHAR_BIT + bit;
+							break;
+						}
+					}
 				}
 			}
 		}

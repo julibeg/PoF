@@ -39,3 +39,6 @@ callgrind*
 
 # test files
 src/test*.cpp
+
+#vim ~ files
+*~

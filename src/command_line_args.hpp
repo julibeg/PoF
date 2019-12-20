@@ -16,6 +16,7 @@ struct parsed_options {
     unsigned int max_d = 0;
     unsigned int threads = 1;
     double p = 1e-3;
+    bool use_cache=true;
 };
 
 vector<string> string2words(const string& str) {
@@ -76,7 +77,10 @@ void print_help() {
         {{"-t, --threads"}, {"number of threads. [default=1]"}},
         {{"-p, --prob"},
          {"estimated probability of a loss-of-function mutation. "
-         "[default=1e-3]"}},
+          "[default=1e-3]"}},
+        {{"-n, --no_cache"},
+          "provide this flag to disable caching results when resolving "
+          "compressed cutsets"},
         {{"-h, --help"}, {"print this message"}}};
     wrap_in_field(header, 75);
     cout << endl << endl;
@@ -126,6 +130,8 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
         } else if ((argument == "-t") || (argument == "--threads")) {
             parsed_options.threads = atoi(argv[i + 1]);
             i++;
+        } else if ((argument == "-n") || (argument == "--no_cache")) {
+            parsed_options.use_cache = false;
         } else {
             cout << argv[i] << endl;
             print_help();

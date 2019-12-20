@@ -188,7 +188,7 @@ public:
 		}
 	}
 
-	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1){
+	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1, bool use_cache=true){
 		// check if max_d is greater than the number of reactions
 		if ((max_d > m_r) || (max_d == 0)) {
 			max_d = m_r;
@@ -231,7 +231,7 @@ public:
 			{
 				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
 				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
-				                  Cutset(m_r_reduced));
+				                  Cutset(m_r_reduced), use_cache);
 				#pragma omp critical
 				{
 					prog_bar.update();
@@ -244,7 +244,7 @@ public:
 
 	void GET_CARDINALITIES(size_t index, const Cutset &Cs, unsigned int Cd,
 	                       unsigned int max_d, unsigned int depth,
-	                       Cutset stored){
+	                       Cutset stored, bool use_cache){
 		tuple<bool, bool, size_t> plus1_rxn_result;
 		vector<size_t> still_to_check;
 		still_to_check.reserve(index);
@@ -284,7 +284,7 @@ public:
 						// no need to check for testCd > Cd, since testCs must
 						// have at least 2 extra rxns
 						GET_CARDINALITIES(j, testCs, testCd, max_d, depth + 1,
-						                  stored);
+						                  stored, use_cache);
 					}
 				}
 			}
@@ -299,7 +299,7 @@ public:
 			}
 			sort(NCRs.begin(), NCRs.end());
 			map<size_t, int> table =
-				resolve_compressed_cutset(NCRs, max_d, depth);
+				resolve_compressed_cutset(NCRs, max_d, depth, use_cache);
 			// single threaded now
 			#pragma omp critical
 			{

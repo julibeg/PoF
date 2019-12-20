@@ -1,0 +1,12 @@
+defigueiredo \
+	-s ${1}.sfile \
+	-m ${1}.mfile \
+	-r ${1}.rfile \
+	-v ${1}.vfile \
+	-c ${1}.cfile \
+	-x ${1}.xfile \
+	-o $4 \
+	-t $3 \
+	-p \
+	-i \
+	-u $2

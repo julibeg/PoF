@@ -14,6 +14,7 @@
 using namespace std;
 
 typedef map<pair<size_t, size_t>, int> Counter;
+typedef unsigned int rxn_idx;
 
 // make '10000000' mask
 unsigned char MASK = pow(2, CHAR_BIT - 1);
@@ -61,70 +62,49 @@ inline unsigned int count_byte(const unsigned char &byte){
 class Cutset {
 public:
 	size_t m_len;
-	size_t m_nbytes;
-	vector<unsigned char> m_bitarr;
+	vector<rxn_idx> m_active_rxns;
 
 	Cutset(size_t);                 // initialize empty bitarr with number of bytes
-	Cutset(const string &); // initialize from string
+	Cutset(const string &);                 // initialize from string
 
 	void print(bool) const;
 	unsigned int CARDINALITY() const;
 	Cutset operator | (const Cutset &) const;
 	bool operator && (const Cutset &) const;
-	vector<size_t> get_active_rxns() const;
+	vector<rxn_idx> get_active_rxns() const;
 	size_t get_first_active_rxn() const;
-	Cutset remove_rxns(const vector<size_t> &) const;
-	tuple<bool, bool, size_t> find_plus1_rxn(const Cutset &) const;
-	void set_bit(size_t);
+	void add_reaction(rxn_idx);
+	Cutset remove_rxns(const vector<rxn_idx> &) const;
+	tuple<bool, bool, rxn_idx> find_plus1_rxn(const Cutset &) const;
 	static Counter resolve_compressed_cutset(const vector<unsigned int> &,
 	                                         unsigned int, unsigned int);
 
 private:
-	bool read_bit(size_t) const;
-	static void print_byte(const unsigned char);
-	void string_to_bitarr(const string &);
+	void extract_active_rxns_from_string(const string &);
 };
 
 Cutset::Cutset(size_t num_rxns) : m_len(num_rxns){
-	m_nbytes = int_div_ceil(m_len, (size_t)CHAR_BIT); // int. div. with ceiling
-	m_bitarr.resize(m_nbytes);
 }
 
 
 Cutset::Cutset(const string &cs){
 	m_len = cs.length();
-	m_nbytes = int_div_ceil(m_len, (size_t)CHAR_BIT); // int. div. with ceiling
-	m_bitarr.resize(m_nbytes);
-	string_to_bitarr(cs);
+	extract_active_rxns_from_string(cs);
 }
 
 
-inline void Cutset::set_bit(size_t pos){
-	size_t byte_pos = pos / CHAR_BIT;
-	size_t bit_pos = pos % CHAR_BIT;
-	m_bitarr[byte_pos] |= (MASK >> bit_pos);
-}
-
-
-void Cutset::string_to_bitarr(const string &cs){
+void Cutset::extract_active_rxns_from_string(const string &cs){
 	for (size_t i = 0; i < cs.length(); i++) {
 		if (cs[i] == '1') {
-			set_bit(i);
+			m_active_rxns.push_back(i);
 		}
 	}
 }
 
 
-void Cutset::print_byte(unsigned char x){
-	for (size_t i = 0; i < CHAR_BIT; i++) {
-		putchar((x & (MASK >> i)) ? '1' : '0');
-	}
-}
-
-
 void Cutset::print(bool new_line=true) const {
-	for (size_t i = 0; i < m_nbytes; i++) {
-		print_byte(m_bitarr[i]);
+	for (rxn_idx i = 0; i < m_len; i++) {
+		cout << (in_vec(m_active_rxns, i) ? "1" : "0");
 	}
 	if (new_line) {
 		cout << endl;
@@ -133,33 +113,43 @@ void Cutset::print(bool new_line=true) const {
 
 
 inline unsigned int Cutset::CARDINALITY() const {
-	unsigned int card = 0;
-	for (size_t i = 0; i < m_nbytes; i++) {
-		card += count_byte(m_bitarr[i]);
-	}
-	return card;
+	return m_active_rxns.size();
 }
 
 
 inline Cutset Cutset::operator | (const Cutset &other_CS) const {
 	Cutset new_cs(m_len);
-	for (size_t i = 0; i < new_cs.m_nbytes; i++) {
-		new_cs.m_bitarr[i] = m_bitarr[i] | other_CS.m_bitarr[i];
-	}
+	new_cs.m_active_rxns.reserve(m_active_rxns.size() +
+	                             other_CS.m_active_rxns.size());
+	set_union(begin(m_active_rxns), end(m_active_rxns),
+	          begin(other_CS.m_active_rxns), end(other_CS.m_active_rxns),
+	          back_inserter(new_cs.m_active_rxns));
 	return new_cs;
 }
 
 
 inline bool Cutset::operator && (const Cutset &other_CS) const {
-	for (size_t i = 0; i < m_nbytes; i++) {
-		if (m_bitarr[i] & other_CS.m_bitarr[i]) {
-			return true;
+	auto first1 = m_active_rxns.begin();
+	auto last1 = m_active_rxns.end();
+	auto first2 = other_CS.m_active_rxns.begin();
+	auto last2 = other_CS.m_active_rxns.end();
+	while (first1 != last1) {
+		if (first2 == last2)
+			return false;
+		if (*first2 < *first1) {
+			first2++;
+		} else {
+			if (*first1 == *first2) {
+				return true;
+			}
+			++first1;
 		}
 	}
 	return false;
 }
 
 
+<<<<<<< HEAD
 vector<size_t> Cutset::get_active_rxns() const {
 	vector<size_t> active_rxns;
 	// reserve some space to minimize frequent reallocations
@@ -176,51 +166,60 @@ vector<size_t> Cutset::get_active_rxns() const {
 		}
 	}
 	return active_rxns;
+=======
+vector<rxn_idx> Cutset::get_active_rxns() const {
+	return m_active_rxns;
+>>>>>>> vector
 }
 
 
 size_t Cutset::get_first_active_rxn() const {
-	size_t pos = 0;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		if (m_bitarr[byte]) {
-			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-				if (m_bitarr[byte] & MASK >> bit) {
-					pos = byte * CHAR_BIT + bit;
-					return pos;
-				}
-			}
-		}
-	}
-	throw invalid_argument("Cutset does not have an active reaction");
+	return m_active_rxns[0];
 }
 
 
-bool Cutset::read_bit(size_t pos) const {
-	size_t byte_pos = pos / CHAR_BIT;
-	size_t bit_pos = pos % CHAR_BIT;
-	if (MASK >> bit_pos & m_bitarr[byte_pos]) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
-
-Cutset Cutset::remove_rxns(const vector<size_t> &del_rxns) const {
+/*
+ * requires del_rxns to be sorted!
+ */
+Cutset Cutset::remove_rxns(const vector<rxn_idx> &del_rxns) const {
 	Cutset new_cs(m_len - del_rxns.size());
-	size_t old_pos = 0, new_pos = 0;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-			old_pos = byte * CHAR_BIT + bit;
-			if (!in_vec(del_rxns, old_pos)) {
-				if (read_bit(old_pos)) {
-					new_cs.set_bit(new_pos);
-				}
-				new_pos++;
+	new_cs.m_active_rxns.reserve(m_active_rxns.size());
+
+	auto first1 = m_active_rxns.cbegin();
+	auto last1 = m_active_rxns.cend();
+	auto first2 = del_rxns.cbegin();
+	auto last2 = del_rxns.cend();
+
+	size_t del_rxn_count = 0;
+	while (first1 != last1) {
+		if (first2 == last2) {
+			for (; first1 != last1; first1++) {
+				new_cs.m_active_rxns.push_back(*first1 - del_rxn_count);
 			}
+			break;
+		}
+		if (*first2 <= *first1) {
+			del_rxn_count++;
+			if (*first1 == *first2) {
+				first1++;
+			}
+			first2++;
+		} else {
+			new_cs.m_active_rxns.push_back(*first1++ - del_rxn_count);
 		}
 	}
 	return new_cs;
+}
+
+
+void Cutset::add_reaction(rxn_idx new_rxn){
+	auto itr = m_active_rxns.begin();
+	for (; itr != m_active_rxns.end(); ++itr) {
+		if (*itr >= new_rxn) {
+			break;
+		}
+	}
+	m_active_rxns.insert(itr, new_rxn);
 }
 
 
@@ -234,49 +233,80 @@ Cutset Cutset::remove_rxns(const vector<size_t> &del_rxns) const {
  *      in the first case, the third element in the tuple is the index of the
  *      single extra reaction.
  */
-tuple<bool, bool, size_t> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
-	size_t plus1_rxn_idx;
-	unsigned char b1, b2, plus1_rxns;
+tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
+	typedef tuple<bool, bool, rxn_idx> result;
+	auto first1 = m_active_rxns.begin();
+	auto last1 = m_active_rxns.end();
+	auto first2 = other_CS.m_active_rxns.begin();
+	auto last2 = other_CS.m_active_rxns.end();
 	unsigned int plus1_rxn_count = 0;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		b1 = m_bitarr[byte];
-		b2 = other_CS.m_bitarr[byte];
-		plus1_rxns = b2 & ~b1;
-		plus1_rxn_count += count_byte(plus1_rxns);
-		// end if there's already more than 1 extra rxn
-		if (plus1_rxn_count > 1) {
-			return tuple<bool, bool, size_t>{false, true, 0};
-		}
-		// if there's only 1 extra rxn, save its index
-		if (count_byte(plus1_rxns) == 1) {
-			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-				if (!(b1 & MASK >> bit) && (b2 & MASK >> bit)) {
-					plus1_rxn_idx = byte * CHAR_BIT + bit;
-					break;
-				}
+	rxn_idx plus1_rxn_idx;
+	while (first1 != last1) {
+		if (first2 == last2)
+			break;
+		if (*first2 < *first1) {
+			plus1_rxn_idx = *first2++;
+			plus1_rxn_count++;
+			if (plus1_rxn_count > 1) {
+				return result {false, true, 0};
 			}
+		} else {
+			if (*first1 == *first2) {
+				*first2++;
+			}
+			first1++;
 		}
 	}
-	// loop completed; check if there was an extra rxn
+	if (last2 - first2) {
+		plus1_rxn_count += last2 - first2;
+		plus1_rxn_idx = *(last2 - 1);
+		if (plus1_rxn_count > 1) {
+			return result {false, true, 0};
+		}
+	}
 	if (plus1_rxn_count == 1) {
-		return tuple<bool, bool, size_t>{true, false, plus1_rxn_idx};
+		return result {true, false, plus1_rxn_idx};
 	} else {
-		return tuple<bool, bool, size_t>{false, false, 0};
+		return result {false, false, 0};
 	}
 }
+
+
+// template <typename T>
+// map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
+//                                            unsigned int max_d,
+//                                            unsigned int depth=1){
+//      map<size_t, int> table;
+//      unsigned int Mj, J, m = NCRs.size();
+//      char sign;
+//      Matrix<T> NSRs = get_NSRs(NCRs);
+//      vector<T> counts = get_combs(NCRs, NSRs);
+//      for (size_t i = 0; i < NSRs.size(); i++) {
+//              Mj = sum_vec(NSRs[i]);
+//              J = depth + Mj - m;
+//              sign = (J % 2) ? 1 : -1;
+//              if (Mj > max_d) {
+//                      continue;
+//              }
+//              table[Mj] += round((int) counts[i] * sign);
+//      }
+//      return table;
+// }
 
 
 template <typename T>
 map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
                                            unsigned int max_d,
-                                           unsigned int depth=1){
+                                           unsigned int depth=1,
+                                           bool use_cache=true){
 	map<size_t, int> table;
 	unsigned int Mj, J, m = NCRs.size();
 	char sign;
-	Matrix<T> NSRs = get_NSRs(NCRs);
-	vector<T> counts = get_combs(NCRs, NSRs);
-	for (size_t i = 0; i < NSRs.size(); i++) {
-		Mj = sum_vec(NSRs[i]);
+	auto Mjs_counts = get_Mjs_and_counts(NCRs, use_cache);
+	auto Mjs = Mjs_counts.first;
+	auto counts = Mjs_counts.second;
+	for (size_t i = 0; i < Mjs.size(); i++) {
+		Mj = Mjs[i];
 		J = depth + Mj - m;
 		sign = (J % 2) ? 1 : -1;
 		if (Mj > max_d) {

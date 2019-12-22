@@ -19,7 +19,7 @@ int main(int argc, char* argv[]){
 	}
 
 	// perform recursive cutset search
-	calc.get_cardinalities(cmd_opts.max_d, cmd_opts.threads);
+	calc.get_cardinalities(cmd_opts.max_d, cmd_opts.threads, cmd_opts.use_cache);
 
 	// print result
 	calc.print_results(cmd_opts.p);

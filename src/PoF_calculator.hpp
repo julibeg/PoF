@@ -16,8 +16,8 @@ class PoF_calculator {
 public:
 	bool m_compressed = false;
 	vector<unsigned int> m_compr_rxn_counts;
-	vector<size_t> m_mcs1_rxns;
-	size_t m_r, m_nbytes, m_nMCS, m_r_reduced, m_nbytes_reduced, m_nMCS_reduced,
+	vector<rxn_idx> m_mcs1_rxns;
+	size_t m_r, m_nMCS, m_r_reduced, m_nMCS_reduced,
 	       m_num_mcs1 = 0, m_num_mcs1_uncompressed = 0;
 	bool m_MCS_d1_present = false;
 	vector<Cutset> m_MCSs;
@@ -51,7 +51,7 @@ public:
 		// reduce the vector of compressed rxns
 		vector<unsigned int> temp;
 		temp.reserve(m_compr_rxn_counts.size() - m_mcs1_rxns.size());
-		for (size_t i = 0; i < m_compr_rxn_counts.size(); i++) {
+		for (rxn_idx i = 0; i < m_compr_rxn_counts.size(); i++) {
 			if (!in_vec(m_mcs1_rxns, i)) {
 				temp.push_back(m_compr_rxn_counts[i]);
 			}
@@ -63,11 +63,9 @@ public:
 	PoF_calculator(const string &mcs_input_fname){
 		vector<Cutset> MCSs = read_MCS_file(mcs_input_fname);
 		m_r = MCSs[0].m_len;
-		m_nbytes = MCSs[0].m_nbytes;
 		m_nMCS = MCSs.size();
 		// set 'reduced' variables (are overwritten in reduce_MCS_arr() later)
 		m_r_reduced = m_r;
-		m_nbytes_reduced = m_nbytes;
 		m_nMCS_reduced = m_nMCS;
 		// only reduce matrix if MCS with d=1 are present
 		if ((MCSs[0].CARDINALITY() == 1)) {
@@ -124,7 +122,6 @@ public:
 				m_mcs1_rxns.push_back(cs.get_first_active_rxn());
 			}
 			m_r_reduced = 0;
-			m_nbytes_reduced = 0;
 			m_nMCS_reduced = 0;
 			return vector<Cutset>();
 
@@ -138,8 +135,9 @@ public:
 				}
 				m_mcs1_rxns.push_back(MCSs[i].get_first_active_rxn());
 			}
+			// sort mcs1 rxns --> required for Cutset::remove_rxns
+			sort(m_mcs1_rxns.begin(), m_mcs1_rxns.end());
 			m_r_reduced = m_r - m_num_mcs1;
-			m_nbytes_reduced = int_div_ceil(m_r_reduced, (size_t)CHAR_BIT);
 			m_nMCS_reduced = m_nMCS - m_num_mcs1;
 			// initialize return vector
 			vector<Cutset> reduced_arr;
@@ -190,7 +188,7 @@ public:
 		}
 	}
 
-	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1){
+	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1, bool use_cache=true){
 		// check if max_d is greater than the number of reactions
 		if ((max_d > m_r) || (max_d == 0)) {
 			max_d = m_r;
@@ -233,7 +231,7 @@ public:
 			{
 				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
 				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
-				                  Cutset(m_r_reduced));
+				                  Cutset(m_r_reduced), use_cache);
 				#pragma omp critical
 				{
 					prog_bar.update();
@@ -246,7 +244,7 @@ public:
 
 	void GET_CARDINALITIES(size_t index, const Cutset &Cs, unsigned int Cd,
 	                       unsigned int max_d, unsigned int depth,
-	                       Cutset stored){
+	                       Cutset stored, bool use_cache){
 		tuple<bool, bool, size_t> plus1_rxn_result;
 		vector<size_t> still_to_check;
 		still_to_check.reserve(index);
@@ -257,7 +255,7 @@ public:
 			if (!(m_MCSs[i] && stored)) {
 				plus1_rxn_result = Cs.find_plus1_rxn(m_MCSs[i]);
 				if (get<0>(plus1_rxn_result)) {
-					stored.set_bit(get<2>(plus1_rxn_result));
+					stored.add_reaction(get<2>(plus1_rxn_result));
 				} else if (get<1>(plus1_rxn_result)) {
 					still_to_check.push_back(i);
 				} else { // m_MCSs[i] is a subset
@@ -286,20 +284,28 @@ public:
 						// no need to check for testCd > Cd, since testCs must
 						// have at least 2 extra rxns
 						GET_CARDINALITIES(j, testCs, testCd, max_d, depth + 1,
-						                  stored);
+						                  stored, use_cache);
 					}
 				}
 			}
 		}
 		// get active rxns of current cutset
 		if (m_compressed) {
+<<<<<<< HEAD
 			vector<unsigned int> NCRs;
 			NCRs.reserve(Cs.CARDINALITY());
 			for (size_t rxn_id : Cs.get_active_rxns()) {
+=======
+			vector<rxn_idx> Cs_rxns = Cs.get_active_rxns();
+			vector<unsigned int> NCRs;
+			NCRs.reserve(Cs_rxns.size());
+			for (auto rxn_id : Cs_rxns) {
+>>>>>>> vector
 				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
 			}
+			sort(NCRs.begin(), NCRs.end());
 			map<size_t, int> table =
-				resolve_compressed_cutset(NCRs, max_d, depth);
+				resolve_compressed_cutset(NCRs, max_d, depth, use_cache);
 			// single threaded now
 			#pragma omp critical
 			{

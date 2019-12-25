@@ -171,7 +171,7 @@ public:
 				auto count = m_cd_table[Mj][a];
 				if (count != 0) {
 					// actual Mj is larger by 1 (0-based indexing)
-					table.print_row(vector<double>{Mj, a, count});
+					table.print_row(vector<double>{Mj + 1, a, count});
 				}
 			}
 		}
@@ -345,6 +345,60 @@ public:
 		return prod1 * prod2;
 	}
 
+	/*
+	 * converts result table of Mjs and plus1_rxns into the vector that would
+	 * be generated if the canonical result table (i.e. of all Mjs and Js -
+	 * nothing left out due to the plus1_rxns-trick) was condensed.
+	 * The vector can then be used to calculate the final PoF(d0=r) via p**Mj
+	 * for the Mj of every superset found in recursion.
+	 */
+	template<typename T>
+	vector<double> convert_table(const Matrix<T> &table){
+		vector<double> result(table.size() * table[0].size());
+		for (size_t row = 0; row < table.size(); row++) {
+			size_t Mj = row + 1;
+			// add original result
+			for (size_t plus1_rxns = 0; plus1_rxns < table[row].size();
+					plus1_rxns++) {
+				double count = table[row][plus1_rxns];
+				if (count == 0) {
+					continue;
+				}
+				result[Mj - 1] += count;
+				for (size_t p1rx = 1; p1rx < plus1_rxns + 1; p1rx++) {
+					int sign = (p1rx % 2) ? -1 : 1;
+					size_t Mj_new =  Mj + p1rx;
+					double count_new = binom(static_cast<double>(plus1_rxns),
+					 	static_cast<double>(p1rx));
+					result[Mj_new - 1] += sign * count_new * count;
+				}
+			}
+		}
+		return result;
+	}
+
+	template<typename T>
+	double get_final_PoF(const vector<T> &Mjs, double p) {
+		double final_PoF = 0;
+		cout << "\nFinal PoF(d0=r) = ";
+		for (size_t i = 0; i < Mjs.size(); i++) {
+			T count = Mjs[i];
+			if (count == 0) {
+				continue;
+			}
+			T Mj = i + 1;
+			final_PoF += count * pow(p, Mj);
+			if (i == 0) {
+				cout << count << "p";
+			} else {
+				cout << ((count < 0) ? " - " : " + ") << abs(count) << "p^" <<
+					Mj;
+			}
+		}
+		cout << endl;
+		return final_PoF;
+	}
+
 	void print_results(double p){
 		double score, weight, weighted_score, acc_weighted_score = 0, found_CS,
 		       possible_CS;
@@ -371,6 +425,8 @@ public:
 				                acc_weighted_score, found_CS, possible_CS};
 			table.print_row(numbers);
 		}
+		double final_PoF = get_final_PoF(convert_table(m_cd_table), p);
+		printf("Final PoF(d0=r) = %.15g\n", final_PoF);
 	}
 
 };

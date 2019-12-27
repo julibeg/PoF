@@ -257,8 +257,13 @@ public:
 				if (get<0>(plus1_rxn_result)) {
 					stored.add_reaction(get<2>(plus1_rxn_result));
 				} else if (get<1>(plus1_rxn_result)) {
+					// check if the union of Cs and m_MCSs[i] would have too
+					// high cardinality --> don't check later
+					if (Cd + get<2>(plus1_rxn_result) > max_d) {
+						continue;
+					}
 					still_to_check.push_back(i);
-				} else { // m_MCSs[i] is a subset
+				} else {		 // m_MCSs[i] is a subset
 					return;
 				}
 			}

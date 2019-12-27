@@ -369,7 +369,7 @@ public:
 					int sign = (p1rx % 2) ? -1 : 1;
 					size_t Mj_new =  Mj + p1rx;
 					double count_new = binom(static_cast<double>(plus1_rxns),
-					 	static_cast<double>(p1rx));
+					 		  				 static_cast<double>(p1rx));
 					result[Mj_new - 1] += sign * count_new * count;
 				}
 			}
@@ -426,7 +426,7 @@ public:
 			table.print_row(numbers);
 		}
 		double final_PoF = get_final_PoF(convert_table(m_cd_table), p);
-		printf("Final PoF(d0=r) = %.15g\n", final_PoF);
+		printf("\nFinal PoF(d0=r) = %.15g\n", final_PoF);
 	}
 
 };

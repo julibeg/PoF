@@ -7,6 +7,7 @@
 
 using namespace std;
 
+
 /**
  * type-casting wrapper for boost library function to calculate
  * binomial coefficients. might overflow when used with integer types
@@ -17,10 +18,12 @@ template <typename T> T binom(T n, T k){
 }
 
 
+/**
+ * print Matrix for debugging
+ */
 template <typename T> void print_matrix(const Matrix<T> m){
 	for (auto const &row : m) {
 		for (auto const &elem : row) {
-			// cout << elem << " ";
 			printf("%d ", elem);
 		}
 		printf("\n");
@@ -90,6 +93,9 @@ vector<T> get_combs(const vector<T> &NCRs, const Matrix<T> &NSRs){
 }
 
 
+/**
+ * get sum of a vector
+ */
 template <typename T> inline T sum_vec(vector<T> vec){
 	T sum = 0;
 	for (auto const &elem : vec) {
@@ -99,14 +105,23 @@ template <typename T> inline T sum_vec(vector<T> vec){
 }
 
 
+/**
+ * binomial distribution as weight function
+ */
 template <typename T1, typename T2>
-
 double binom_dist_weight(T1 n, T2 k, double p=0.5){
 	return binom(static_cast<double>(n), static_cast<double>(k)) *
 	       pow(p, k) * pow(1 - p, n - k);
 }
 
 
+/**
+ * resolve compressed cutsets from vector with number of compressed rxns (NCRs).
+ * the function goes through all possible combinations of deletions in the
+ * uncompressed model that would lead to the cut set in the compressed case
+ * and returns the respective Mjs and counts.
+ * can cache results.
+ */
 template<typename T>
 pair<vector<T>, vector<T> > get_Mjs_and_counts(const vector<T> &NCRs,
                                                bool use_cache=true){
@@ -135,4 +150,4 @@ pair<vector<T>, vector<T> > get_Mjs_and_counts(const vector<T> &NCRs,
 	return pair<vector<T>, vector<T> > {Mjs, counts};
 }
 
-#endif
+#endif /*  COMBINATORICS_HPP */

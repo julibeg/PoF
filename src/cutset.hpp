@@ -2,6 +2,7 @@
 #define CUTSET_HPP
 
 #include "combinatorics.hpp"
+#include "types.hpp"
 #include <algorithm>
 #include <iostream>
 #include <limits.h>
@@ -13,18 +14,26 @@
 #include <vector>
 using namespace std;
 
-typedef map<pair<size_t, size_t>, int> Counter;
+
+// define datatype to be used to store the indices of deletions in a cut set.
 typedef unsigned int rxn_idx;
 
-// make '10000000' mask
+
+// make '10000000' bitmask
 unsigned char MASK = pow(2, CHAR_BIT - 1);
 
-// integer division with ceiling
+
+/*
+ * integer division with ceiling
+ */
 template <typename T> T int_div_ceil(T a, T b){
 	return (a + b - 1) / b;
 }
 
 
+/**
+ * check whether x is in vec
+ */
 template <typename T> bool in_vec(const vector<T> &vec, const T &x){
 	if (find(vec.begin(), vec.end(), x) != vec.end()) {
 		return true;
@@ -34,38 +43,20 @@ template <typename T> bool in_vec(const vector<T> &vec, const T &x){
 }
 
 
-vector<unsigned int> generate_lookup_table(size_t nbits){
-	vector<unsigned int> lookup_table;
-	unsigned int max = pow(2, nbits);
-	for (size_t i = 0; i < max; i++) {
-		unsigned int count = 0;
-		for (size_t j = 0; j < nbits; j++) {
-			if (i & (1 << j)) {
-				count++;
-			}
-		}
-		lookup_table.push_back(count);
-	}
-	return lookup_table;
-}
-
-
-// initialize lookup table
-vector<unsigned int> lookup_table = generate_lookup_table(CHAR_BIT);
-
-// use lookup table
-inline unsigned int count_byte(const unsigned char &byte){
-	return lookup_table[byte];
-}
-
-
+/*
+ * class for representing a single cut set. it stores the indices of deleted
+ * reactions in a vector. given the sparsity of cut sets in most situations
+ * (e.g. max. 10 deletions in a network of 2000 reactions) this is more
+ * efficient than most generic binary representations. in the context of cut
+ * sets "active rxns" means deleted reactions.
+ */
 class Cutset {
 public:
-	size_t m_len;
-	vector<rxn_idx> m_active_rxns;
+	size_t m_len;						// total number of reactions
+	vector<rxn_idx> m_active_rxns;		// indices of deleted reactions
 
-	Cutset(size_t);                 // initialize empty bitarr with number of bytes
-	Cutset(const string &);                 // initialize from string
+	Cutset(size_t);             // init. empty instance with number of rxns
+	Cutset(const string &);     // init. from string of '0's and '1's
 
 	void print(bool) const;
 	unsigned int CARDINALITY() const;
@@ -83,16 +74,26 @@ private:
 	void extract_active_rxns_from_string(const string &);
 };
 
+
+/*
+ * construct empty instance with a given number of reactions.
+ */
 Cutset::Cutset(size_t num_rxns) : m_len(num_rxns){
 }
 
 
+/*
+ * construct from string of the form "0001010001..."
+ */
 Cutset::Cutset(const string &cs){
 	m_len = cs.length();
 	extract_active_rxns_from_string(cs);
 }
 
 
+/*
+ * get positions of deletions in a binary string
+ */
 void Cutset::extract_active_rxns_from_string(const string &cs){
 	for (size_t i = 0; i < cs.length(); i++) {
 		if (cs[i] == '1') {
@@ -102,6 +103,9 @@ void Cutset::extract_active_rxns_from_string(const string &cs){
 }
 
 
+/*
+ * print cut set for debugging
+ */
 void Cutset::print(bool new_line=true) const {
 	for (rxn_idx i = 0; i < m_len; i++) {
 		cout << (in_vec(m_active_rxns, i) ? "1" : "0");
@@ -112,11 +116,17 @@ void Cutset::print(bool new_line=true) const {
 }
 
 
+/*
+ * return cardinality of cut set
+ */
 inline unsigned int Cutset::CARDINALITY() const {
 	return m_active_rxns.size();
 }
 
 
+/*
+ * overload | operator to give the union of two cut sets
+ */
 inline Cutset Cutset::operator | (const Cutset &other_CS) const {
 	Cutset new_cs(m_len);
 	new_cs.m_active_rxns.reserve(m_active_rxns.size() +
@@ -128,6 +138,10 @@ inline Cutset Cutset::operator | (const Cutset &other_CS) const {
 }
 
 
+/*
+ * overload && operator to check wheter two cut sets have at least one deletion
+ * in common
+ */
 inline bool Cutset::operator && (const Cutset &other_CS) const {
 	auto first1 = m_active_rxns.begin();
 	auto last1 = m_active_rxns.end();
@@ -149,18 +163,25 @@ inline bool Cutset::operator && (const Cutset &other_CS) const {
 }
 
 
+/*
+ * return indices of deletions
+ */
 vector<rxn_idx> Cutset::get_active_rxns() const {
 	return m_active_rxns;
 }
 
 
+/*
+ * get index of first deletion
+ */
 size_t Cutset::get_first_active_rxn() const {
 	return m_active_rxns[0];
 }
 
 
 /*
- * requires del_rxns to be sorted!
+ * return new Cutset with the reactions at the positions in del_rxns removed.
+ * requires del_rxns to be sorted
  */
 Cutset Cutset::remove_rxns(const vector<rxn_idx> &del_rxns) const {
 	Cutset new_cs(m_len - del_rxns.size());
@@ -193,6 +214,9 @@ Cutset Cutset::remove_rxns(const vector<rxn_idx> &del_rxns) const {
 }
 
 
+/*
+ * add deletion to cut set while keeping the indices in order
+ */
 void Cutset::add_reaction(rxn_idx new_rxn){
 	auto itr = m_active_rxns.begin();
 	for (; itr != m_active_rxns.end(); ++itr) {
@@ -257,28 +281,10 @@ tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const 
 }
 
 
-// template <typename T>
-// map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
-//                                            unsigned int max_d,
-//                                            unsigned int depth=1){
-//      map<size_t, int> table;
-//      unsigned int Mj, J, m = NCRs.size();
-//      char sign;
-//      Matrix<T> NSRs = get_NSRs(NCRs);
-//      vector<T> counts = get_combs(NCRs, NSRs);
-//      for (size_t i = 0; i < NSRs.size(); i++) {
-//              Mj = sum_vec(NSRs[i]);
-//              J = depth + Mj - m;
-//              sign = (J % 2) ? 1 : -1;
-//              if (Mj > max_d) {
-//                      continue;
-//              }
-//              table[Mj] += round((int) counts[i] * sign);
-//      }
-//      return table;
-// }
-
-
+/*
+ * resolve compressed cut set returning a table that can be added to the main
+ * result in PoF_calculator.hpp
+ */
 template <typename T>
 map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
                                            unsigned int max_d,

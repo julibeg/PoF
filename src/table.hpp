@@ -6,6 +6,10 @@
 #include <string>
 using namespace std;
 
+
+/**
+ * class used to print formatted tables for debugging
+ */
 class Table {
 public:
 	vector<string> header;
@@ -55,4 +59,4 @@ private:
 
 };
 
-#endif
+#endif /* TABLE_HPP */

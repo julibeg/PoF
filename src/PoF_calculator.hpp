@@ -4,6 +4,7 @@
 #include "cutset.hpp"
 #include "table.hpp"
 #include "types.hpp"
+// Luigi Pertoldi's progress bar from https://github.com/gipert/progressbar
 #include "../include/progressbar.hpp"
 
 #include <fstream>
@@ -12,30 +13,45 @@
 #include <sstream>
 using namespace std;
 
+
+/*
+ * class for MCS import, pre-processing (i.e. reduction) and recursion.
+ */
 class PoF_calculator {
 public:
+	// whether in compressed or uncompressed case
 	bool m_compressed = false;
+	// numb. of compr. rxns on each position if in compressed case
 	vector<unsigned int> m_compr_rxn_counts;
+	// positions of essential reactions
 	vector<rxn_idx> m_mcs1_rxns;
+	// numb. of rxns and MCSs for original MCS matrix and reduced form.
+	// numb. of essential reactions in compressed and uncompressed network
 	size_t m_r, m_nMCS, m_r_reduced, m_nMCS_reduced,
 	       m_num_mcs1 = 0, m_num_mcs1_uncompressed = 0;
+	// whether essential rxns are present --> no recursion necessery otherwise
 	bool m_MCS_d1_present = false;
+	// cut sets
 	vector<Cutset> m_MCSs;
+	// result table
 	Matrix<long> m_cd_table;
+	// d0
 	unsigned int m_max_d;
 
 	// default constructor
-	PoF_calculator(){
-	}
+	PoF_calculator(){}
 
-	// constructor for compressed networks --> delegating to constructor for
-	// uncomprressed (constructor delegation is new in C++11)
+ 	/*
+ 	 * constructor for compressed networks --> delegating to constructor for
+ 	 * uncomprressed case (constructor delegation is new in C++11)
+ 	 */
 	PoF_calculator(const string &mcs_input_fname, const string &comp_rxn_fname,
 		size_t r=0)
 		: PoF_calculator(mcs_input_fname){ // delegate to other constructor
 		read_comp_rxn_file(comp_rxn_fname);
 		m_compressed = true;
-		// if # of uncompr. rxns has not been provided, take sum of compr. rxns
+		// if the numb. of uncompr. rxns has not been provided, r is the sum of
+		// compr. rxns
 		if (r == 0) {
 			m_r = 0;
 			for (auto rxn_count : m_compr_rxn_counts) {
@@ -59,7 +75,9 @@ public:
 		m_compr_rxn_counts = temp;
 	}
 
-	// constructor for uncompressed case
+	/*
+	 * constructor for uncompressed case
+	 */
 	PoF_calculator(const string &mcs_input_fname){
 		vector<Cutset> MCSs = read_MCS_file(mcs_input_fname);
 		m_r = MCSs[0].m_len;
@@ -76,6 +94,10 @@ public:
 		m_MCSs = MCSs;
 	}
 
+	/*
+	 * read file with number of compressed rxns for each rxn in the compressed
+	 * network (file in the format of "3 4 2 1 4 3 6 ...")
+	 */
 	void read_comp_rxn_file(const string &fname){
 		string line;
 		ifstream file(fname);
@@ -87,7 +109,7 @@ public:
 			cout << "Error opening compr. rxns file" << endl;
 			exit(EXIT_FAILURE);
 		}
-		// split line at whitespace
+		// split line at whitespaces
 		string comp_rxn;
 		istringstream iss(line);
 		while (getline(iss, comp_rxn, ' ')) {
@@ -95,6 +117,12 @@ public:
 		}
 	}
 
+	/*
+	 * read file with MCSs in binary format
+	 * file should be sorted by MCS cardinality and look like:
+	 * '001000000...
+	 *  000000100...'
+	 */
 	vector<Cutset> read_MCS_file(const string &fname){
 		string line;
 		vector<Cutset> MCSs;
@@ -102,7 +130,7 @@ public:
 		if (file.is_open()) {
 			cout << "Reading MCS file...\n" << endl;
 			while (getline(file, line)) {
-				Cutset cs(line);
+				Cutset cs(line);	// instantiate Cutset object for every line
 				MCSs.push_back(cs);
 			}
 			file.close();
@@ -113,8 +141,12 @@ public:
 		return MCSs;
 	}
 
+	/*
+	 * reduce MCS matrix by removing all essential reactions and the MCSs
+	 * containing those.
+	 */
 	vector<Cutset> reduce_MCS_arr(const vector<Cutset> &MCSs){
-		// find number of MCS(d=1) reactions and the corresponding reactions
+		// find number of essential rxns and the corresponding indices
 		if (MCSs.back().CARDINALITY() == 1) {
 			// matrix only has MCS with d=1 and is reduced to nothing
 			m_num_mcs1 = MCSs.size();
@@ -133,15 +165,17 @@ public:
 					m_num_mcs1 = i;
 					break;
 				}
+				// add index of essential rxn to m_mcs1_rxns
 				m_mcs1_rxns.push_back(MCSs[i].get_first_active_rxn());
 			}
 			// sort mcs1 rxns --> required for Cutset::remove_rxns
 			sort(m_mcs1_rxns.begin(), m_mcs1_rxns.end());
 			m_r_reduced = m_r - m_num_mcs1;
 			m_nMCS_reduced = m_nMCS - m_num_mcs1;
-			// initialize return vector
+			// initialize reduced MCS matrix
 			vector<Cutset> reduced_arr;
 			reduced_arr.reserve(m_nMCS_reduced);
+			// add MCSs with non-essential rxns to reduced MCS matrix
 			for (size_t i = m_num_mcs1; i < m_nMCS; i++) {
 				Cutset reduced_cs = MCSs[i].remove_rxns(m_mcs1_rxns);
 				reduced_arr.push_back(reduced_cs);
@@ -150,15 +184,21 @@ public:
 		}
 	}
 
+	/*
+	 * pre-populate result table based on number of essential reactions
+	 */
 	void add_MCS1_to_table(){
 		unsigned int num_mcs1 =
 			(m_compressed) ? m_num_mcs1_uncompressed : m_num_mcs1;
-		size_t Mj = 1; // cardinality of MCS1 = 1
+		size_t Mj = 1; 			// cardinality of MCS1 = 1
 		for (size_t a = 0; a < num_mcs1; a++) {
 			m_cd_table[Mj - 1][a]++;
 		}
 	}
 
+	/*
+	 * pretty-print result table (e.g. for debugging)
+	 */
 	void print_cd_table() const {
 		Table table {
 			{"|Mj|", "a", "#"},
@@ -177,8 +217,10 @@ public:
 		}
 	}
 
+	/*
+	 * add temp table element-wise to result table
+	 */
 	template <typename T>
-
 	void add_to_cd_table(const Counter &temp_table){
 		for (const auto &elem : temp_table) {
 			auto Mj = get<0>(elem.first);
@@ -188,15 +230,21 @@ public:
 		}
 	}
 
+	/*
+	 * main function preparing for and then invoking recursion
+	 */
 	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1, bool use_cache=true){
-		// check if max_d is greater than the number of reactions
+		// check if d0 supplied at cmd line is greater than the number of rxns
 		if ((max_d > m_r) || (max_d == 0)) {
 			max_d = m_r;
 		}
 		m_max_d = max_d;
+		// initialize result table with rows for every 0 < d <= d0 and columns
+		// for every reaction (representing plus 1 rxns)
 		m_cd_table = Matrix<long>(max_d, vector<long>(m_r, 0));
 		size_t last_MCS_to_consider = m_MCSs.size();
-		if (m_MCS_d1_present) { // add MCS1 to table
+		if (m_MCS_d1_present) {
+			// add MCS1 to table
 			cout << "adding MCS(d=1) to table...\n" << endl;
 			add_MCS1_to_table();
 			if (m_MCSs.size() == 0) {
@@ -208,7 +256,7 @@ public:
 			}
 		}
 		cout << "Starting recursion...\n" << endl;
-		// check if there are MCS with d > max_d
+		// check if there are MCS with d > d0 (max_d)
 		if (m_MCSs.back().CARDINALITY() > max_d) {
 			// get the last element with d <= max_d
 			for (size_t i = 0; i < m_MCSs.size(); i++) {
@@ -224,12 +272,13 @@ public:
 		// initialize openMP for loop
 		#pragma omp parallel for num_threads(num_threads)
 		for (size_t i = 0; i < last_MCS_to_consider; i++) {
-			// start with high cardinality MCS first --> loop speeds up instead
-			// of slowing down --> nicer.
+			// start with high cardinality MCSs first --> loop speeds up towards
+			// the end instead of slowing down --> nicer.
 			size_t j = last_MCS_to_consider - i - 1;
 			#pragma omp task
 			{
 				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
+				// start recursion
 				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
 				                  Cutset(m_r_reduced), use_cache);
 				#pragma omp critical
@@ -242,6 +291,9 @@ public:
 		cout << "\n\n" << endl;
 	}
 
+	/*
+	 * implement the recursive algorithm
+	 */
 	void GET_CARDINALITIES(size_t index, const Cutset &Cs, unsigned int Cd,
 	                       unsigned int max_d, unsigned int depth,
 	                       Cutset stored, bool use_cache){
@@ -277,13 +329,13 @@ public:
 		} else {
 			plus1_rxns += stored.CARDINALITY() + m_num_mcs1;
 		}
-		// perform additional recursions if required
+		// perform additional/deeper recursions if required
 		if (Cd < max_d) {
 			for (size_t j : still_to_check) {
 				if (!(m_MCSs[j] && stored)) {
 					Cutset testCs = Cs | m_MCSs[j]; // looks inefficient to
 					// create a new Cutset here in every iteration but is
-					// actually not done after taken care of by optimizer
+					// actually not done due to compiler optimization
 					testCd = testCs.CARDINALITY();
 					if (testCd <= max_d) {
 						// no need to check for testCd > Cd, since testCs must
@@ -298,14 +350,16 @@ public:
 		if (m_compressed) {
 			vector<rxn_idx> Cs_rxns = Cs.get_active_rxns();
 			vector<unsigned int> NCRs;
+			// get NCRs to resolved to uncompressed case later
 			NCRs.reserve(Cs_rxns.size());
 			for (auto rxn_id : Cs_rxns) {
 				NCRs.push_back(m_compr_rxn_counts[rxn_id]);
 			}
 			sort(NCRs.begin(), NCRs.end());
+			// resolve compressed cut set
 			map<size_t, int> table =
 				resolve_compressed_cutset(NCRs, max_d, depth, use_cache);
-			// single threaded now
+			// single threaded now while adding to result table
 			#pragma omp critical
 			{
 				for (const auto &elem : table) {
@@ -323,6 +377,9 @@ public:
 		}
 	}
 
+	/*
+	 * evaluate result table to give f(d, m0)
+	 */
 	double score_cd_table(unsigned int d) const {
 		long count;
 		double score = 0;
@@ -338,6 +395,10 @@ public:
 		return score;
 	}
 
+	/*
+	 * scoring function (eq. 3 in paper) in a form that avoids binomial
+	 * coefficients
+	 */
 	static double SCORE(unsigned int r, unsigned int a, unsigned int Mj,
 	                    unsigned int d){
 		double prod1 = 1, prod2 = 1;
@@ -352,8 +413,8 @@ public:
 
 	/*
 	 * converts result table of Mjs and plus1_rxns into the vector that would
-	 * be generated if the canonical result table (i.e. of all Mjs and Js -
-	 * nothing left out due to the plus1_rxns-trick) was condensed.
+	 * have been generated if the canonical result table (i.e. of all Mjs and
+	 * Js - nothing left out due to the plus1_rxns-trick) had been condensed.
 	 * The vector can then be used to calculate the final PoF(d0=r) via p**Mj
 	 * for the Mj of every superset found in recursion.
 	 */
@@ -382,6 +443,12 @@ public:
 		return result;
 	}
 
+	/*
+	 * get final PoF according to eq. 5 of the paper (i.e. d --> r). The
+	 * result is not 100% accurate, however, and can overestimate the PoF
+	 * slightly. The result of F(d=d0), on the other hand, represents a lower
+	 * bound.
+	 */
 	template<typename T>
 	double get_final_PoF(const vector<T> &Mjs, double p) {
 		double final_PoF = 0;
@@ -404,6 +471,10 @@ public:
 		return final_PoF;
 	}
 
+	/*
+	 * print results for d --> d0 and then the polynomial leading to the final
+	 * PoF (see `get_final_PoF` above)
+	 */
 	void print_results(double p){
 		double score, weight, weighted_score, acc_weighted_score = 0, found_CS,
 		       possible_CS;
@@ -436,4 +507,4 @@ public:
 
 };
 
-#endif
+#endif /* POF_CALCULATOR_HPP */

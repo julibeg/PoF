@@ -149,27 +149,8 @@ inline bool Cutset::operator && (const Cutset &other_CS) const {
 }
 
 
-<<<<<<< HEAD
-vector<size_t> Cutset::get_active_rxns() const {
-	vector<size_t> active_rxns;
-	// reserve some space to minimize frequent reallocations
-	active_rxns.reserve(m_len / 100 > 10 ? m_len / 100 : 10);
-	size_t pos;
-	for (size_t byte = 0; byte < m_nbytes; byte++) {
-		if (m_bitarr[byte]) {
-			for (size_t bit = 0; bit < CHAR_BIT; bit++) {
-				if (m_bitarr[byte] & MASK >> bit) {
-					pos = byte * CHAR_BIT + bit;
-					active_rxns.push_back(pos);
-				}
-			}
-		}
-	}
-	return active_rxns;
-=======
 vector<rxn_idx> Cutset::get_active_rxns() const {
 	return m_active_rxns;
->>>>>>> vector
 }
 
 
@@ -232,6 +213,8 @@ void Cutset::add_reaction(rxn_idx new_rxn){
  *           --> second bool == true
  *      in the first case, the third element in the tuple is the index of the
  *      single extra reaction.
+ *      in the second case, the third element in the tuple is the number of
+ *      extra reactions
  */
 tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const {
 	typedef tuple<bool, bool, rxn_idx> result;
@@ -247,9 +230,9 @@ tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const 
 		if (*first2 < *first1) {
 			plus1_rxn_idx = *first2++;
 			plus1_rxn_count++;
-			if (plus1_rxn_count > 1) {
-				return result {false, true, 0};
-			}
+			// if (plus1_rxn_count > 1) {
+			// 	return result {false, true, 0};
+			// }
 		} else {
 			if (*first1 == *first2) {
 				*first2++;
@@ -260,14 +243,16 @@ tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const 
 	if (last2 - first2) {
 		plus1_rxn_count += last2 - first2;
 		plus1_rxn_idx = *(last2 - 1);
-		if (plus1_rxn_count > 1) {
-			return result {false, true, 0};
-		}
+		// if (plus1_rxn_count > 1) {
+		// 	return result {false, true, 0};
+		// }
 	}
 	if (plus1_rxn_count == 1) {
 		return result {true, false, plus1_rxn_idx};
-	} else {
+	} else if (plus1_rxn_count == 0) {
 		return result {false, false, 0};
+	} else {
+		return result {false, true, plus1_rxn_count};
 	}
 }
 

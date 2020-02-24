@@ -6,8 +6,14 @@ import os
 
 
 fname = sys.argv[1]
-model_name = os.path.splitext(fname)[0]
-m = cobra.io.read_sbml_model(fname)
+model_name, extension = os.path.splitext(fname)
+if extension == '.json':
+	m = cobra.io.load_json_model(fname)
+elif extension == '.xml' or extension == '.sbml':
+	m = cobra.io.read_sbml_model(fname)
+else:
+	print(f'ERROR: input file ({fname}) missing matching extension (.json/.xml/.sbml)')
+	sys.exit(1)
 
 #write sfile
 np.savetxt(f'{model_name}.sfile', 

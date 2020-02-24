@@ -9,8 +9,8 @@ d0=$4
 t=1
 
 #check if the model has either .xml or .sbml extension
-if [ "$extension" != "xml" ] && [ "$extension" != "sbml" ]; then
-	echo "ERROR: model file ($1) lacking .sbml or .xml extension"
+if [ "$extension" != "xml" ] && [ "$extension" != "sbml" ] && [ "$extension" != "json" ]; then
+	echo "ERROR: model file ($1) lacking .sbml/.xml/.json extension"
 	exit 1
 fi
 
@@ -37,7 +37,6 @@ printf "$model_name: read model and extract files...\n\n"
 extractFromSBML.py $sbml_fname
 
 #biomass rxn won't be compressed
-BM_rxn=$(grep -io "[^ ]*$BM_rxn[^ ]*" ${model_name}.rfile)
 printf "$model_name: biomass reaction is $BM_rxn\n\n"
 echo "$BM_rxn" > ${model_name}.nfile
 

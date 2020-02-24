@@ -135,5 +135,4 @@ pair<vector<T>, vector<T> > get_Mjs_and_counts(const vector<T> &NCRs,
 	return pair<vector<T>, vector<T> > {Mjs, counts};
 }
 
-
 #endif

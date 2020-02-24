@@ -38,7 +38,13 @@ PoFcalc
 callgrind*
 
 # test files
-src/test*.cpp
+src/test*
+
+# `main` executables
+src/main*
+
+# bug input files
+example_files
 
 #vim ~ files
 *~

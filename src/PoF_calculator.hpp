@@ -417,12 +417,19 @@ public:
 	 * Js - nothing left out due to the plus1_rxns-trick) had been condensed.
 	 * The vector can then be used to calculate the final PoF(d0=r) via p**Mj
 	 * for the Mj of every superset found in recursion.
+	 * to avoid overflows in binom or numbers that are so large that they are
+	 * coerced to `inf` when printed later, stop at Mj=200. p^200 is
+	 * essentially 0 anyway.
 	 */
 	template<typename T>
 	vector<double> convert_table(const Matrix<T> &table){
 		vector<double> result(table.size() * table[0].size());
+		size_t Mj_limit = 200;
 		for (size_t row = 0; row < table.size(); row++) {
 			size_t Mj = row + 1;
+			if (Mj > Mj_limit) {
+				break;
+			}
 			// add original result
 			for (size_t plus1_rxns = 0; plus1_rxns < table[row].size();
 					plus1_rxns++) {
@@ -434,9 +441,16 @@ public:
 				for (size_t p1rx = 1; p1rx < plus1_rxns + 1; p1rx++) {
 					int sign = (p1rx % 2) ? -1 : 1;
 					size_t Mj_new =  Mj + p1rx;
-					double count_new = binom(static_cast<double>(plus1_rxns),
-					 		  				 static_cast<double>(p1rx));
-					result[Mj_new - 1] += sign * count_new * count;
+					if (Mj_new > Mj_limit) {
+						break;
+					}
+					try {
+						double count_new = binom(static_cast<double>(plus1_rxns),
+						 		  				 static_cast<double>(p1rx));
+						result[Mj_new - 1] += sign * count_new * count;
+					} catch (std::overflow_error) {
+						break;
+					}
 				}
 			}
 		}
@@ -446,8 +460,8 @@ public:
 	/*
 	 * get final PoF according to eq. 5 of the paper (i.e. d --> r). The
 	 * result is not 100% accurate, however, and can overestimate the PoF
-	 * slightly. The result of F(d=d0), on the other hand, represents a lower
-	 * bound.
+	 * slightly. The result of F(d=d0), on the other hand, represents a
+	 * definite lower bound.
 	 */
 	template<typename T>
 	double get_final_PoF(const vector<T> &Mjs, double p) {

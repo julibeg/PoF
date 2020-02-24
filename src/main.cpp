@@ -10,7 +10,7 @@ int main(int argc, char* argv[]){
 
 	// instantiate calculator class for compressed or uncompressed case
 	PoF_calculator calc;
-	if (cmd_opts.compr_rxn_fname.size() == 0) {                     // uncompressed
+	if (cmd_opts.compr_rxn_fname.size() == 0) {                 // uncompressed
 		calc = PoF_calculator(cmd_opts.mcs_fname);
 	} else {
 		calc = PoF_calculator(cmd_opts.mcs_fname,               // compressed
@@ -24,8 +24,8 @@ int main(int argc, char* argv[]){
 	// print result
 	calc.print_results(cmd_opts.p);
 
+	// print result table for debugging
 	// calc.print_cd_table();
-	// cout << calc.m_r << endl;
 
 	return 0;
 }

@@ -9,6 +9,7 @@
 #include <vector>
 using namespace std;
 
+
 struct parsed_options {
     string mcs_fname;
     string compr_rxn_fname;
@@ -19,6 +20,10 @@ struct parsed_options {
     bool use_cache=true;
 };
 
+
+/**
+ * split string at whitespaces
+ */
 vector<string> string2words(const string& str) {
     string word;
     stringstream sstream(str);
@@ -30,6 +35,11 @@ vector<string> string2words(const string& str) {
     return words;
 }
 
+
+/**
+ * wrap potentially long string into a field of a given length (i.e. into lines
+ * with a maximum length)
+ */
 void wrap_in_field(string str, unsigned int field_width,
                    unsigned int offset = 0, unsigned int initial_offset = 0) {
     printf("%*s", initial_offset, "");
@@ -55,6 +65,10 @@ void wrap_in_field(string str, unsigned int field_width,
     }
 }
 
+
+/**
+ * print formatted help string
+ */
 void print_help() {
     string header{
         "Calculate the probability of failure (PoF) for a metabolic network "
@@ -94,6 +108,10 @@ void print_help() {
     }
 }
 
+
+/**
+ * function to parse command line options
+ */
 parsed_options parse_cmd_line(int argc, char* argv[]) {
     parsed_options parsed_options;
     if (argc == 1) {
@@ -141,4 +159,4 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
     return parsed_options;
 }
 
-#endif
+#endif /* COMMAND_LINE_ARGS_HPP */

@@ -40,9 +40,6 @@ callgrind*
 # test files
 src/test*
 
-# `main` executables
-src/main*
-
 # bug input files
 example_files
 

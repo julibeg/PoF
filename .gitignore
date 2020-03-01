@@ -40,7 +40,7 @@ callgrind*
 # test files
 src/test*
 
-# bug input files
+# debug input files
 example_files
 
 #vim ~ files

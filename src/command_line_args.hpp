@@ -87,7 +87,7 @@ void print_help() {
           "[default=sum of numbers in compr. rxn file"}},
         {{"-d, --d_max"},
          {"maximum cardinality up to which PoF should be "
-          "calculated. default=number of uncrompr. rxns]"}},
+          "calculated. [default=number of uncrompr. rxns]"}},
         {{"-t, --threads"}, {"number of threads. [default=1]"}},
         {{"-p, --prob"},
          {"estimated probability of a loss-of-function mutation. "

@@ -5,7 +5,7 @@
 #include "table.hpp"
 #include "types.hpp"
 // Luigi Pertoldi's progress bar from https://github.com/gipert/progressbar
-#include "../include/progressbar.hpp"
+#include "../include/progressbar/progressbar.hpp"
 
 #include <fstream>
 #include <iostream>

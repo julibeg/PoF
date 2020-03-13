@@ -41,7 +41,7 @@ callgrind*
 src/test*
 
 # debug input files
-#example_files
+example_files
 
 #vim ~ files
 *~

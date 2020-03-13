@@ -18,6 +18,14 @@ cd PoF
 make
 ```
 
+### Example
+To test the installation, go into `/test_files` and run the analysis on compressed MCSs of the *E. coli* model *i*JO1366 
+via 
+```
+PoFcalc -m iJO1366.mcs.comp.binary -c iJO1366.num_comp_rxns -r 2583 -d 5
+```
+The command line arguments are explained under `PoFcalc -h`.
+
 ## License
 
 The program relies on some Boost libraries (https://www.boost.org/) as well as Luigi Pertoldi's progressbar 

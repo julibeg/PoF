@@ -99,7 +99,7 @@ void print_help() {
     wrap_in_field(header, 75);
     cout << endl << endl;
     cout << "Usage:" << endl;
-    wrap_in_field({"PoF_calculator -m MCS_file [OPTIONS...]"}, 50, 0, 3);
+    wrap_in_field({"PoFcalc -m MCS_file [OPTIONS...]"}, 50, 0, 3);
     cout << endl << endl;
     for (const auto& opt : options) {
         wrap_in_field(opt[0], 15, 0, 3);

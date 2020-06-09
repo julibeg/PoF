@@ -218,19 +218,6 @@ public:
 	}
 
 	/*
-	 * add temp table element-wise to result table
-	 */
-	template <typename T>
-	void add_to_cd_table(const Counter &temp_table){
-		for (const auto &elem : temp_table) {
-			auto Mj = get<0>(elem.first);
-			auto a = get<1>(elem.first);
-			auto count = elem.second;
-			m_cd_table[Mj - 1][a] += count;
-		}
-	}
-
-	/*
 	 * main function preparing for and then invoking recursion
 	 */
 	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1, bool use_cache=true){

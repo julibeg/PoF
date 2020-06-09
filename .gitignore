@@ -39,6 +39,8 @@ callgrind*
 
 # test files
 src/test*
+test
+TODO
 
 # debug input files
 example_files

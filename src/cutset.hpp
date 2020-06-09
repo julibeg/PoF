@@ -67,8 +67,6 @@ public:
 	void add_reaction(rxn_idx);
 	Cutset remove_rxns(const vector<rxn_idx> &) const;
 	tuple<bool, bool, rxn_idx> find_plus1_rxn(const Cutset &) const;
-	static Counter resolve_compressed_cutset(const vector<unsigned int> &,
-	                                         unsigned int, unsigned int);
 
 private:
 	void extract_active_rxns_from_string(const string &);

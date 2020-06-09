@@ -219,76 +219,66 @@ class PoF_calculator {
         }
     }
 
-    /*
-     * add temp table element-wise to result table
-     */
-    template <typename T> void add_to_cd_table(const Counter& temp_table) {
-        for (const auto& elem : temp_table) {
-            auto Mj = get<0>(elem.first);
-            auto a = get<1>(elem.first);
-            auto count = elem.second;
-            m_cd_table[Mj - 1][a] += count;
-        }
-    }
-
-    /*
-     * main function preparing for and then invoking recursion
-     */
-    void get_cardinalities(unsigned int max_d, unsigned int num_threads = 1,
-                           bool use_cache = true) {
-        // check if d0 supplied at cmd line is greater than the number of rxns
-        if ((max_d > m_r) || (max_d == 0)) {
-            max_d = m_r;
-        }
-        m_max_d = max_d;
-        // initialize result table with rows for every 0 < d <= d0 and columns
-        // for every reaction (representing plus 1 rxns)
-        m_cd_table = Matrix<long>(max_d, vector<long>(m_r, 0));
-        size_t last_MCS_to_consider = m_MCSs.size();
-        if (m_MCS_d1_present) {
-            // add MCS1 to table
-            cout << "adding MCS(d=1) to table...\n" << endl;
-            add_MCS1_to_table();
-            if (m_MCSs.size() == 0) {
-                // MCS matrix was reduced to nothing --> only MCS with d=1 in
-                // original matrix
-                cout << "no MCS with d>1 present --> no recursion required\n"
-                     << endl;
-                return;
-            }
-        }
-        cout << "Starting recursion...\n" << endl;
-        // check if there are MCS with d > d0 (max_d)
-        if (m_MCSs.back().CARDINALITY() > max_d) {
-            // get the last element with d <= max_d
-            for (size_t i = 0; i < m_MCSs.size(); i++) {
-                if (m_MCSs[i].CARDINALITY() > max_d) {
-                    last_MCS_to_consider = i;
-                    break;
-                }
-            }
-        }
-        // setup progress bar
-        progressbar prog_bar(last_MCS_to_consider);
-// initialize openMP for loop
-#pragma omp parallel for num_threads(num_threads)
-        for (size_t i = 0; i < last_MCS_to_consider; i++) {
-            // start with high cardinality MCSs first --> loop speeds up towards
-            // the end instead of slowing down --> nicer.
-            size_t j = last_MCS_to_consider - i - 1;
-#pragma omp task
-            {
-                unsigned int mcs_card = m_MCSs[j].CARDINALITY();
-                // start recursion
-                GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
-                                  Cutset(m_r_reduced), use_cache);
-#pragma omp critical
-                { prog_bar.update(); }
-            }
-        }
-        // add new lines after progress bar
-        cout << "\n\n" << endl;
-    }
+	/*
+	 * main function preparing for and then invoking recursion
+	 */
+	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1, bool use_cache=true){
+		// check if d0 supplied at cmd line is greater than the number of rxns
+		if ((max_d > m_r) || (max_d == 0)) {
+			max_d = m_r;
+		}
+		m_max_d = max_d;
+		// initialize result table with rows for every 0 < d <= d0 and columns
+		// for every reaction (representing plus 1 rxns)
+		m_cd_table = Matrix<long>(max_d, vector<long>(m_r, 0));
+		size_t last_MCS_to_consider = m_MCSs.size();
+		if (m_MCS_d1_present) {
+			// add MCS1 to table
+			cout << "adding MCS(d=1) to table...\n" << endl;
+			add_MCS1_to_table();
+			if (m_MCSs.size() == 0) {
+				// MCS matrix was reduced to nothing --> only MCS with d=1 in
+				// original matrix
+				cout << "no MCS with d>1 present --> no recursion required\n"
+				     << endl;
+				return;
+			}
+		}
+		cout << "Starting recursion...\n" << endl;
+		// check if there are MCS with d > d0 (max_d)
+		if (m_MCSs.back().CARDINALITY() > max_d) {
+			// get the last element with d <= max_d
+			for (size_t i = 0; i < m_MCSs.size(); i++) {
+				if (m_MCSs[i].CARDINALITY() > max_d) {
+					last_MCS_to_consider = i;
+					break;
+				}
+			}
+		}
+		// setup progress bar
+		progressbar prog_bar(last_MCS_to_consider);
+		size_t j;
+		// initialize openMP for loop
+		#pragma omp parallel for num_threads(num_threads)
+		for (size_t i = 0; i < last_MCS_to_consider; i++) {
+			// start with high cardinality MCSs first --> loop speeds up towards
+			// the end instead of slowing down --> nicer.
+			size_t j = last_MCS_to_consider - i - 1;
+			#pragma omp task
+			{
+				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
+				// start recursion
+				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
+				                  Cutset(m_r_reduced), use_cache);
+				#pragma omp critical
+				{
+					prog_bar.update();
+				}
+			}
+		}
+		// add new lines after progress bar
+		cout << "\n\n" << endl;
+	}
 
     /*
      * implement the recursive algorithm

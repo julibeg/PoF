@@ -58,8 +58,6 @@ public:
 	void add_reaction(rxn_idx);
 	Cutset remove_rxns(const vector<rxn_idx> &) const;
 	tuple<bool, bool, rxn_idx> find_plus1_rxn(const Cutset &) const;
-	static Counter resolve_compressed_cutset(const vector<unsigned int> &,
-	                                         unsigned int, unsigned int);
 
 private:
 	void extract_active_rxns_from_string(const string &);
@@ -270,34 +268,5 @@ tuple<bool, bool, rxn_idx> Cutset::find_plus1_rxn(const Cutset &other_CS) const 
 		return result {false, true, plus1_rxn_count};
 	}
 }
-
-
-/*
- * resolve compressed cut set returning a table that can be added to the main
- * result in PoF_calculator.hpp
- */
-template <typename T>
-map<size_t, int> resolve_compressed_cutset(const vector<T> &NCRs,
-                                           unsigned int max_d,
-                                           unsigned int depth=1,
-                                           bool use_cache=true){
-	map<size_t, int> table;
-	unsigned int Mj, J, m = NCRs.size();
-	char sign;
-	auto Mjs_counts = get_Mjs_and_counts(NCRs, use_cache);
-	auto Mjs = Mjs_counts.first;
-	auto counts = Mjs_counts.second;
-	for (size_t i = 0; i < Mjs.size(); i++) {
-		Mj = Mjs[i];
-		J = depth + Mj - m;
-		sign = (J % 2) ? 1 : -1;
-		if (Mj > max_d) {
-			continue;
-		}
-		table[Mj] += round((int) counts[i] * sign);
-	}
-	return table;
-}
-
 
 #endif

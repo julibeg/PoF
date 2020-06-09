@@ -5,7 +5,6 @@
 #include "types.hpp"
 #include <algorithm>
 #include <iostream>
-#include <limits.h>
 #include <map>
 #include <math.h>
 #include <stdexcept>
@@ -15,20 +14,12 @@
 using namespace std;
 
 
-// define datatype to be used to store the indices of deletions in a cut set.
-typedef unsigned int rxn_idx;
-
-
-// make '10000000' bitmask
-unsigned char MASK = pow(2, CHAR_BIT - 1);
-
-
-/*
- * integer division with ceiling
+/**
+ * define int type to be used to store the indices of deletions in a cut set.
+ * larger types potentially slow down the program, but it needs to be larger
+ * than the highest possible number of reactions.
  */
-template <typename T> T int_div_ceil(T a, T b){
-	return (a + b - 1) / b;
-}
+typedef unsigned int rxn_idx;
 
 
 /**

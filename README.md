@@ -1,7 +1,11 @@
 # PoF
 
 Calculates the probability of failure (i.e. the complement of structural robustness) for metabolic networks. 
-
+The program can use linearly compressed networks, as long as a file with a breakdown of the individual compressed
+reactions is provided. However, please be aware that due to different internal implementations of some look-ahead 
+tricks that minimize the required number of recursions, the program might yield minimally different results for the 
+compressed and uncompressed case. Nonetheless, the strict lower and upper bounds are still correct and the magnitude 
+of the differences is usually in the range of machine precision.
 
 ### Prerequisites
 

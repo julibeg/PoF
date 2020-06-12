@@ -15,7 +15,7 @@ struct parsed_options {
     unsigned int num_uncompressed_rxns = 0;
     unsigned int max_d = 0;
     unsigned int threads = 1;
-    double p = 1e-3;
+    double p = 1e-4;
     unsigned int dm = 0;
     bool use_cache = true;
 
@@ -99,7 +99,7 @@ void print_help() {
                         "[default=number of uncrompr. rxns]"},
         {"-t, --threads", "number of threads. [default=1]"},
         {"-p, --prob", "estimated probability of a loss-of-function mutation. "
-                       "[default=1e-3]"},
+                       "[default=1e-4]"},
         {"q, --dm", "cardinality up to which all MCSs are known (i.e. dm). "
                     "Only required for giving an accurate upper bound. [default=0]"},
         {"-n, --no_cache",

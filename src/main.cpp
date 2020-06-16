@@ -11,7 +11,7 @@ int main(int argc, char* argv[]){
 	// print command line args
 	cout << "Running PoFcalc:\n";
 	cmd_opts.print();
-	cout << endl;
+	cout << string(22, '-') << endl << endl;
 
 	// instantiate calculator class for compressed or uncompressed case
 	PoF_calculator calc;

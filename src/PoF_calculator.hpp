@@ -561,7 +561,7 @@ class PoF_calculator {
         printf("Iterative PoF(d0=r)\t= %.15e\t\t--> lower bound\n",
                acc_weighted_score);
         double final_PoF = get_final_PoF(convert_table(m_cd_table), p);
-        printf("Polynomial PoF(d0=r)\t= %.15e\t\t--> Most accurate, but might "
+        printf("Polynomial PoF(d0=r)\t= %.15e\t\t--> best guess, but might "
                "overshoot\n",
                final_PoF);
         printf("It. PoF(d0=r) + error\t= %.15e\t\t--> upper bound\n",

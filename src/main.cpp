@@ -8,6 +8,11 @@ int main(int argc, char* argv[]){
 	// parse command line arguments
 	parsed_options cmd_opts = parse_cmd_line(argc, argv);
 
+	// print command line args
+	cout << "Running PoFcalc:\n";
+	cmd_opts.print();
+	cout << endl;
+
 	// instantiate calculator class for compressed or uncompressed case
 	PoF_calculator calc;
 	if (cmd_opts.compr_rxn_fname.size() == 0) {                 // uncompressed
@@ -22,9 +27,10 @@ int main(int argc, char* argv[]){
 	calc.get_cardinalities(cmd_opts.max_d, cmd_opts.threads, cmd_opts.use_cache);
 
 	// print result
-	calc.print_results(cmd_opts.p);
+	calc.print_results(cmd_opts.p, cmd_opts.dm);
 
 	// print result table for debugging
+	// cout << endl;
 	// calc.print_cd_table();
 
 	return 0;

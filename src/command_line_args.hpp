@@ -9,17 +9,29 @@
 #include <vector>
 using namespace std;
 
-
 struct parsed_options {
     string mcs_fname;
     string compr_rxn_fname;
     unsigned int num_uncompressed_rxns = 0;
     unsigned int max_d = 0;
     unsigned int threads = 1;
-    double p = 1e-3;
-    bool use_cache=true;
-};
+    double p = 1e-4;
+    unsigned int dm = 0;
+    bool use_cache = true;
 
+    void print() {
+        cout << "MCSs from " << mcs_fname << endl;
+        if (compr_rxn_fname.size() > 0) {
+            cout << "compressed reaction numbers from " << compr_rxn_fname << endl;
+            cout << num_uncompressed_rxns << " uncompressed reactions" << endl;
+        }
+        cout << "d0 = " << max_d << endl;
+        cout << "dm = " << dm << endl;
+        printf("p = %.2e\n", p);
+        cout << threads << " threads" << endl;
+        cout << ((use_cache) ? "using cache" : "not using cache") << endl;
+    }
+};
 
 /**
  * split string at whitespaces
@@ -34,7 +46,6 @@ vector<string> string2words(const string& str) {
     }
     return words;
 }
-
 
 /**
  * wrap potentially long string into a field of a given length (i.e. into lines
@@ -65,7 +76,6 @@ void wrap_in_field(string str, unsigned int field_width,
     }
 }
 
-
 /**
  * print formatted help string
  */
@@ -76,26 +86,26 @@ void print_help() {
         "obtained from a compressed network to yield the PoF of the original "
         "uncompressed one."};
     vector<vector<string>> options{
-        {{"-m, --mcs"}, {"file with binary-encoded MCS (e.g. '100010100...')"}},
-         {{"-c, --compr"}, {"file with space-separated numbers of linearly "
-          "compressed "
-          "reactions per column in MCS file (e.g. '1 1 3 1 2...'). "
-          "If not provided, assumes uncompressed network."}},
-        {{"-r, --rxns"},
-         {"number of reactions in the uncompressed network; not "
-          "required for uncompressed case. "
-          "[default=sum of numbers in compr. rxn file"}},
-        {{"-d, --d_max"},
-         {"maximum cardinality up to which PoF should be "
-          "calculated. [default=number of uncrompr. rxns]"}},
-        {{"-t, --threads"}, {"number of threads. [default=1]"}},
-        {{"-p, --prob"},
-         {"estimated probability of a loss-of-function mutation. "
-          "[default=1e-3]"}},
-        {{"-n, --no_cache"},
-          "provide this flag to disable caching results when resolving "
-          "compressed cutsets"},
-        {{"-h, --help"}, {"print this message"}}};
+        {"-m, --mcs", "file with binary-encoded MCS (e.g. '100010100...')"},
+        {"-c, --compr",
+         "file with space-separated numbers of linearly "
+         "compressed "
+         "reactions per column in MCS file (e.g. '1 1 3 1 2...'). "
+         "If not provided, assumes uncompressed network."},
+        {"-r, --rxns", "number of reactions in the uncompressed network; not "
+                       "required for uncompressed case. "
+                       "[default=sum of numbers in compr. rxn file"},
+        {"-d, --d_max", "maximum cardinality for recursion. (i.e. d0) "
+                        "[default=number of uncrompr. rxns]"},
+        {"-t, --threads", "number of threads. [default=1]"},
+        {"-p, --prob", "estimated probability of a loss-of-function mutation. "
+                       "[default=1e-4]"},
+        {"q, --dm", "cardinality up to which all MCSs are known (i.e. dm). "
+                    "Only required for giving an accurate upper bound. [default=0]"},
+        {"-n, --no_cache",
+         "provide this flag to disable caching results when resolving "
+         "compressed cutsets"},
+        {"-h, --help", "print this message"}};
     wrap_in_field(header, 75);
     cout << endl << endl;
     cout << "Usage:" << endl;
@@ -107,7 +117,6 @@ void print_help() {
         cout << endl << endl;
     }
 }
-
 
 /**
  * function to parse command line options
@@ -138,7 +147,7 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
             i++;
         } else if ((argument == "-p") || (argument == "--prob")) {
             double p = atof(argv[i + 1]);
-            if ((p >= 1) || (p < 0)){
+            if ((p >= 1) || (p < 0)) {
                 cout << "ERROR: p should be between 0 and 1\n" << endl;
                 print_help();
                 exit(1);
@@ -147,6 +156,9 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
             i++;
         } else if ((argument == "-t") || (argument == "--threads")) {
             parsed_options.threads = atoi(argv[i + 1]);
+            i++;
+        } else if ((argument == "-q") || (argument == "--dm")) {
+            parsed_options.dm = atoi(argv[i + 1]);
             i++;
         } else if ((argument == "-n") || (argument == "--no_cache")) {
             parsed_options.use_cache = false;

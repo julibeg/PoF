@@ -18,6 +18,7 @@ struct parsed_options {
     double p = 1e-4;
     unsigned int dm = 0;
     bool use_cache = true;
+    bool print_poly = false;
 
     void print() {
         cout << "MCSs from " << mcs_fname << endl;
@@ -30,6 +31,9 @@ struct parsed_options {
         printf("p = %.2e\n", p);
         cout << threads << " threads" << endl;
         cout << ((use_cache) ? "using cache" : "not using cache") << endl;
+        if (print_poly) {
+            cout << "printing polynomial" << endl;
+        }
     }
 };
 
@@ -100,11 +104,12 @@ void print_help() {
         {"-t, --threads", "number of threads. [default=1]"},
         {"-p, --prob", "estimated probability of a loss-of-function mutation. "
                        "[default=1e-4]"},
-        {"q, --dm", "cardinality up to which all MCSs are known (i.e. dm). "
+        {"-q, --dm", "cardinality up to which all MCSs are known (i.e. dm). "
                     "Only required for giving an accurate upper bound. [default=0]"},
         {"-n, --no_cache",
          "provide this flag to disable caching results when resolving "
          "compressed cutsets"},
+        {"-l, --poly", "print polynomial at the end"},
         {"-h, --help", "print this message"}};
     wrap_in_field(header, 75);
     cout << endl << endl;
@@ -162,6 +167,8 @@ parsed_options parse_cmd_line(int argc, char* argv[]) {
             i++;
         } else if ((argument == "-n") || (argument == "--no_cache")) {
             parsed_options.use_cache = false;
+        } else if ((argument == "-l") || (argument == "--poly")) {
+            parsed_options.print_poly = true;
         } else {
             cout << argv[i] << endl;
             print_help();

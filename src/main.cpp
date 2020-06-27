@@ -27,7 +27,7 @@ int main(int argc, char* argv[]){
 	calc.get_cardinalities(cmd_opts.max_d, cmd_opts.threads, cmd_opts.use_cache);
 
 	// print result
-	calc.print_results(cmd_opts.p, cmd_opts.dm);
+	calc.print_results(cmd_opts.p, cmd_opts.dm, cmd_opts.print_poly);
 
 	// print result table for debugging
 	// cout << endl;

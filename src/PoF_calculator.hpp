@@ -219,66 +219,65 @@ class PoF_calculator {
         }
     }
 
-	/*
-	 * main function preparing for and then invoking recursion
-	 */
-	void get_cardinalities(unsigned int max_d, unsigned int num_threads=1, bool use_cache=true){
-		// check if d0 supplied at cmd line is greater than the number of rxns
-		if ((max_d > m_r) || (max_d == 0)) {
-			max_d = m_r;
-		}
-		m_max_d = max_d;
-		// initialize result table with rows for every 0 < d <= d0 and columns
-		// for every reaction (representing plus 1 rxns)
-		m_cd_table = Matrix<long>(max_d, vector<long>(m_r, 0));
-		size_t last_MCS_to_consider = m_MCSs.size();
-		if (m_MCS_d1_present) {
-			// add MCS1 to table
-			cout << "adding MCS(d=1) to table...\n" << endl;
-			add_MCS1_to_table();
-			if (m_MCSs.size() == 0) {
-				// MCS matrix was reduced to nothing --> only MCS with d=1 in
-				// original matrix
-				cout << "no MCS with d>1 present --> no recursion required\n"
-				     << endl;
-				return;
-			}
-		}
-		cout << "Starting recursion...\n" << endl;
-		// check if there are MCS with d > d0 (max_d)
-		if (m_MCSs.back().CARDINALITY() > max_d) {
-			// get the last element with d <= max_d
-			for (size_t i = 0; i < m_MCSs.size(); i++) {
-				if (m_MCSs[i].CARDINALITY() > max_d) {
-					last_MCS_to_consider = i;
-					break;
-				}
-			}
-		}
-		// setup progress bar
-		progressbar prog_bar(last_MCS_to_consider);
-		size_t j;
-		// initialize openMP for loop
-		#pragma omp parallel for num_threads(num_threads)
-		for (size_t i = 0; i < last_MCS_to_consider; i++) {
-			// start with high cardinality MCSs first --> loop speeds up towards
-			// the end instead of slowing down --> nicer.
-			size_t j = last_MCS_to_consider - i - 1;
-			#pragma omp task
-			{
-				unsigned int mcs_card = m_MCSs[j].CARDINALITY();
-				// start recursion
-				GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
-				                  Cutset(m_r_reduced), use_cache);
-				#pragma omp critical
-				{
-					prog_bar.update();
-				}
-			}
-		}
-		// add new lines after progress bar
-		cout << "\n\n" << endl;
-	}
+    /*
+     * main function preparing for and then invoking recursion
+     */
+    void get_cardinalities(unsigned int max_d, unsigned int num_threads = 1,
+                           bool use_cache = true) {
+        // check if d0 supplied at cmd line is greater than the number of rxns
+        if ((max_d > m_r) || (max_d == 0)) {
+            max_d = m_r;
+        }
+        m_max_d = max_d;
+        // initialize result table with rows for every 0 < d <= d0 and columns
+        // for every reaction (representing plus 1 rxns)
+        m_cd_table = Matrix<long>(max_d, vector<long>(m_r, 0));
+        size_t last_MCS_to_consider = m_MCSs.size();
+        if (m_MCS_d1_present) {
+            // add MCS1 to table
+            cout << "adding MCS(d=1) to table...\n" << endl;
+            add_MCS1_to_table();
+            if (m_MCSs.size() == 0) {
+                // MCS matrix was reduced to nothing --> only MCS with d=1 in
+                // original matrix
+                cout << "no MCS with d>1 present --> no recursion required\n"
+                     << endl;
+                return;
+            }
+        }
+        cout << "Starting recursion...\n" << endl;
+        // check if there are MCS with d > d0 (max_d)
+        if (m_MCSs.back().CARDINALITY() > max_d) {
+            // get the last element with d <= max_d
+            for (size_t i = 0; i < m_MCSs.size(); i++) {
+                if (m_MCSs[i].CARDINALITY() > max_d) {
+                    last_MCS_to_consider = i;
+                    break;
+                }
+            }
+        }
+        // setup progress bar
+        progressbar prog_bar(last_MCS_to_consider);
+        size_t j;
+// initialize openMP for loop
+#pragma omp parallel for num_threads(num_threads)
+        for (size_t i = 0; i < last_MCS_to_consider; i++) {
+            // start with high cardinality MCSs first --> loop speeds up towards
+            // the end instead of slowing down --> nicer.
+            size_t j = last_MCS_to_consider - i - 1;
+#pragma omp task
+            {
+                unsigned int mcs_card = m_MCSs[j].CARDINALITY();
+                // start recursion
+                GET_CARDINALITIES(j, m_MCSs[j], mcs_card, max_d, 1,
+                                  Cutset(m_r_reduced), use_cache);
+#pragma omp critical
+                { prog_bar.update(); }
+            }
+        }
+        // add new lines after progress bar
+        cout << "\n\n" << endl;
+    }
 
     /*
      * implement the recursive algorithm
@@ -487,10 +486,15 @@ class PoF_calculator {
      * get final PoF according to eq. 5 of the paper (i.e. d --> r). The
      * result is not 100% accurate, however, and can overestimate the PoF
      * slightly. The result of F(d=d0), on the other hand, represents a
-     * definite lower bound.
+     * definite lower bound. Can also return a string representation of
+     * the polynomial.
      */
-    template <typename T> double get_final_PoF(const vector<T>& Mjs, double p) {
+    template <typename T>
+    tuple<double, string> get_final_PoF(const vector<T>& Mjs, double p,
+                                        bool get_poly = false) {
         double final_PoF = 0;
+        stringstream poly_buf;
+        string polynomial;
         for (size_t i = 0; i < Mjs.size(); i++) {
             T count = Mjs[i];
             if (count == 0) {
@@ -498,8 +502,23 @@ class PoF_calculator {
             }
             T Mj = i + 1;
             final_PoF += count * pow(p, Mj);
+            if (get_poly) {
+                if (i == 0) {
+                    poly_buf << count << "p";
+                } else {
+                    poly_buf << ((count < 0) ? " - " : " + ") << abs(count)
+                             << "p^" << Mj;
+                }
+            }
         }
-        return final_PoF;
+        if (get_poly) {
+            poly_buf << endl;
+            polynomial = poly_buf.str();
+            if (polynomial.substr(0, 3) == " + ") {
+                polynomial.erase(0, 3);
+            }
+        }
+        return make_tuple(final_PoF, polynomial);
     }
 
     /*
@@ -511,7 +530,7 @@ class PoF_calculator {
      * without recursion up to d = r. to obtain the highest-possible lower
      * bound for every d > d0 the larger one of F(d0) or F1(d) is selected.
      */
-    void print_results(double p, unsigned int dm = 0) {
+    void print_results(double p, unsigned int dm = 0, bool print_poly = false) {
         double score, f1, weight, weighted_score,
             acc_weighted_score = 0, found_CS, possible_CS, error = 0;
         // initialize table to print results
@@ -553,20 +572,26 @@ class PoF_calculator {
             vector<double> numbers{
                 d,        weight,     score, weighted_score, acc_weighted_score,
                 found_CS, possible_CS};
-            // cout << score << "\t" << f1 << endl;
             table.print_row(numbers);
         }
         cout << "\n\nFinal results:" << endl;
         cout << string(22, '-') << endl;
         printf("Iterative PoF(d0=r)\t= %.15e\t\t--> lower bound\n",
                acc_weighted_score);
-        double final_PoF = get_final_PoF(convert_table(m_cd_table), p);
+        double final_PoF;
+        string polynomial;
+        tie(final_PoF, polynomial) =
+            get_final_PoF(convert_table(m_cd_table), p, print_poly);
         printf("Polynomial PoF(d0=r)\t= %.15e\t\t--> best guess, but might "
                "overshoot\n",
                final_PoF);
         printf("It. PoF(d0=r) + error\t= %.15e\t\t--> upper bound\n",
                acc_weighted_score + error);
         cout << string(22, '-') << endl;
+
+        if (print_poly) {
+            cout << "Polynomial: " << polynomial << endl;
+        }
     }
 };
 

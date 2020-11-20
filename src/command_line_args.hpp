@@ -98,7 +98,7 @@ void print_help() {
          "If not provided, assumes uncompressed network."},
         {"-r, --rxns", "number of reactions in the uncompressed network; not "
                        "required for uncompressed case. "
-                       "[default=sum of numbers in compr. rxn file"},
+                       "[default=sum of numbers in compr. rxn file]"},
         {"-d, --d_max", "maximum cardinality for recursion. (i.e. d0) "
                         "[default=number of uncrompr. rxns]"},
         {"-t, --threads", "number of threads. [default=1]"},
